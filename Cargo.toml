@@ -1,0 +1,13 @@
+[package]
+name = "rust-rt"
+version = "0.1.0"
+authors = ["Emil Nordén <emilnorden@yahoo.se>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+assimp = "0.3.1"
+ocl = "0.19.3"
+sdl2 = "0.31.0"
+gl = "0.14.0"
