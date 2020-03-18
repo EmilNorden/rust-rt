@@ -28,7 +28,7 @@ fn main() {
 
     unsafe {
         gl::Viewport(0, 0, 900, 700);
-        gl::ClearColor(0.3, 0.3, 0.5, 1.0);
+        gl::ClearColor(1.0, 0.0, 1.0, 1.0);
     }
 
     use std::ffi::CString;
@@ -40,10 +40,20 @@ fn main() {
     ).unwrap();
 
     let vertices: Vec<f32> = vec![
+        -1.0, -1.0, 0.0,    1.0, 0.0, 0.0,      0.0, 0.0, // nere vänster?
+        1.0, -1.0, 0.0,    0.0, 1.0, 0.0,      0.0, 0.0, // nere höger
+        -1.0, 1.0, 0.0,    0.0, 0.0, 1.0,      0.0, 0.0, // uppe vänster
+
+        -1.0, 1.0, 0.0,    0.0, 0.0, 1.0,      0.0, 0.0, // uppe vänster
+        1.0, -1.0, 0.0,    0.0, 1.0, 0.0,      0.0, 0.0, // nere höger
+        1.0, 1.0, 0.0,    0.0, 0.0, 0.0,      0.0, 0.0, // uppe höger
+    ];
+
+    /*let vertices: Vec<f32> = vec![
         -0.5, -0.5, 0.0,    1.0, 0.0, 0.0,      0.0, 0.0,
         0.5, -0.5, 0.0,     0.0, 1.0, 0.0,      0.0, 1.0,
         0.0, 0.5, 0.0,      0.0, 0.0, 1.0,      1.0, 0.0
-    ];
+    ];*/
 
     let mut vbo: gl::types::GLuint = 0;
     unsafe {
@@ -120,6 +130,7 @@ fn main() {
 
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::FrontFace(gl::CW);
         }
 
         pixels[i] = color;
@@ -149,7 +160,7 @@ fn main() {
             gl::DrawArrays(
                 gl::TRIANGLES,
                 0,
-                3
+                6
             );
         }
 

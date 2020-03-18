@@ -11,5 +11,5 @@ uniform sampler2D tex;
 
 void main()
 {
-    Color = texture(tex, IN.TexCoord);
+    Color = vec4(IN.Color, 1);
 }
