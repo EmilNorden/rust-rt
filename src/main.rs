@@ -4,13 +4,15 @@ extern crate gl;
 pub mod render_gl;
 pub mod texture;
 pub mod window;
-pub mod mesh_loader;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use crate::texture::Texture;
 
+mod content;
+
 fn main() {
+
     let sdl = sdl2::init().unwrap();
     let window = window::Window::create(&sdl).unwrap();
 
