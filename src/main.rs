@@ -8,10 +8,31 @@ pub mod window;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use crate::texture::Texture;
+use crate::scene::SceneEntity;
+use crate::scene::Scene;
+use num_traits::identities::One;
 
 mod content;
+mod renderer;
+mod scene;
+mod core;
 
 fn main() {
+
+    // let _foo = content::load("/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj").unwrap();
+    // let _foo = content::load("/Users/emil/code/rust-rt/assets/models/crate/crate1.obj").unwrap();
+    let _foo = content::load("/Users/emil/code/rust-rt/assets/models/horse/horse.obj").unwrap();
+    let mut identity = glm::Matrix4::<f32>::one();
+    let entity = SceneEntity {
+        mesh: &_foo.meshes[0],
+        inverse_transform: identity // TODO: SHOULD INVERSE
+    };
+
+    let mut scene = scene::create_scene();
+    scene.add(entity);
+    let mut camera = renderer::Camera::new();
+    camera.set_position(glm::Vector3::new(0.0, 0.0, 500.0));
+    camera.set_direction(glm::Vector3::new(0.0, 0.0, -1.0));
 
     let sdl = sdl2::init().unwrap();
     let window = window::Window::create(&sdl).unwrap();
@@ -24,14 +45,24 @@ fn main() {
         &[vert_shader, frag_shader]
     ).unwrap();
 
-    let vertices: Vec<f32> = vec![
-        -1.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, // nere vänster?
-        1.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, // nere höger
-        -1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // uppe vänster
+    /*let vertices: Vec<f32> = vec![
+        -1.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, // nere vänster?
+        1.0, -1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, // nere höger
+        1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, // uppe höger
 
-        -1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // uppe vänster
-        1.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, // nere höger
-        1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, // uppe höger
+        -1.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, // nere vänster?
+        1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, // uppe höger
+        -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, // uppe vänster
+    ];*/
+
+    let vertices: Vec<f32> = vec![
+        -1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, // uppe vänster?
+        1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, // uppe höger
+        1.0, -1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, // nere höger
+
+        -1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, // uppe vänster?
+        1.0, -1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, // nere höger
+        -1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, // nere vänster
     ];
 
     let mut vbo: gl::types::GLuint = 0;
@@ -88,13 +119,30 @@ fn main() {
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
-
-    let mut pixels: [u8; 512 * 512 * 3] = [0; 512 * 512 * 3];
+    let mut pixels: [u8; 256 * 256 * 3] = [0; 256 * 256 * 3];
     let mut color = 0;
-    let texture = Texture::from_pixels(512, 512, pixels.to_vec()).unwrap();
+    let texture = Texture::from_pixels(256, 256, pixels.to_vec()).unwrap();
     texture.bind();
     let mut i = 0;
     let mut event_pump = sdl.event_pump().unwrap();
+
+    for y in 0..256usize {
+        for x in 0..256usize {
+            let ray = camera.cast_ray(x, y);
+            let result = scene.trace(&ray);
+            let color: glm::Vector3<f32> = match result {
+                Some(intersection) => glm::Vector3::new(1.0, 0.0, 0.0),
+                None => glm::Vector3::new(0.0, 0.0, 0.0)
+            };
+
+            pixels[(y * 256 * 3) + (x * 3)] = (color.x * 255.0) as u8;
+            pixels[(y * 256 * 3) + (x * 3) + 1] = (color.y * 255.0) as u8;
+            pixels[(y * 256 * 3) + (x * 3) + 2] = (color.z * 255.0) as u8;
+        }
+
+        println!("row {}", y);
+    }
+
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -111,11 +159,8 @@ fn main() {
             gl::FrontFace(gl::CW);
         }
 
-        pixels[i] = color;
-        color = (color + 1) % 255;
-        i = (i + 1) % (512 * 512 * 3);
 
-        texture.set_pixels(512, 512, pixels.to_vec());
+        texture.set_pixels(256, 256, pixels.to_vec());
         texture.bind();
 
         /*unsafe {
@@ -123,8 +168,8 @@ fn main() {
                 gl::TEXTURE_2D,
                 0,
                 gl::RGB as i32,
-                512,
-                512,
+                256,
+                256,
                 0,
                 gl::RGB,
                 gl::UNSIGNED_BYTE,

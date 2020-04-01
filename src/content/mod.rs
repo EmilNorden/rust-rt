@@ -1,18 +1,87 @@
 extern crate assimp;
 
-mod mesh;
+use crate::content::mesh::{Model, Material, IndexedMesh};
 
+pub mod mesh;
 
-pub fn load(path: &str) -> Result<i32, &str> {
+pub struct Tuples<I> {
+    original: I,
+}
+
+impl<I> Iterator for Tuples<I> where I: Iterator {
+    type Item = (I::Item, I::Item, I::Item);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(t1) = self.original.next() {
+            if let Some(t2) = self.original.next() {
+                if let Some(t3) = self.original.next() {
+                    return Some((t1, t2, t3));
+                }
+            }
+        }
+
+        return None;
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self.original.size_hint() {
+            (lower, Some(upper)) => (lower, Some(upper / 3)),
+            h @ (_, _) => h
+        }
+    }
+}
+
+pub fn tuples<I: Iterator>(iterator: I) -> Tuples<I> {
+    Tuples { original: iterator }
+}
+
+pub fn load(path: &str) -> Result<Model, &str> {
+    let (models, materials) = tobj::load_obj(path).unwrap();
+
+    println!("# of models: {}", models.len());
+    println!("# of materials: {}", materials.len());
+
+    let meshes = models.into_iter().map(|x|
+        {
+            /*let mut indices = Vec::<(u32, u32, u32)>::with_capacity(x.mesh.indices.len() / 3);
+
+            for i in (0..x.mesh.indices.len()).step_by(3) {
+                indices.push((x.mesh.indices[i], x.mesh.indices[i + 1], x.mesh.indices[i + 2]));
+            }*/
+
+            let indices = tuples(x.mesh.indices.into_iter()).collect();
+            let coordinates = tuples(x.mesh.positions.into_iter())
+                .map(|tuple| glm::Vector3::new(tuple.0, tuple.1, tuple.2))
+                .collect();
+
+            IndexedMesh {
+                coordinates,
+                normals: x.mesh.normals,
+                texcoords: x.mesh.texcoords,
+                indices,
+                material_id: match x.mesh.material_id {
+                    Some(id) => id + 1,
+                    None => 0
+                } as u16,
+            }
+        }
+    ).collect();
+
+    let result = Model {
+        materials: materials.into_iter().map(|x| { Material { id: 0 } }).collect(),
+        meshes,
+    };
+
+    Ok(result)
+}
+
+pub fn load_assimp(path: &str) -> Result<i32, &str> {
     let mut importer = assimp::import::Importer::new();
     setup_importer(&mut importer);
 
     let result = importer.read_file(path).unwrap();
-
-    result.mat
-    for x in result.material_iter() {
-        x
-    }
 
     Ok(32)
 }
