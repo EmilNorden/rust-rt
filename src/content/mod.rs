@@ -1,6 +1,7 @@
 extern crate assimp;
 
 use crate::content::mesh::{Model, Material, IndexedMesh};
+use crate::core::geom::AABB;
 
 pub mod mesh;
 
@@ -56,18 +57,20 @@ pub fn load(path: &str) -> Result<Model, &str> {
                 .map(|tuple| glm::Vector3::new(tuple.0, tuple.1, tuple.2))
                 .collect();
 
+            let bounds = AABB::from_vector3(&coordinates);
+
             IndexedMesh {
                 coordinates,
                 normals: x.mesh.normals,
                 texcoords: x.mesh.texcoords,
                 indices,
+                bounds,
                 material_id: match x.mesh.material_id {
                     Some(id) => id + 1,
                     None => 0
                 } as u16,
             }
-        }
-    ).collect();
+        }).collect();
 
     let result = Model {
         materials: materials.into_iter().map(|x| { Material { id: 0 } }).collect(),

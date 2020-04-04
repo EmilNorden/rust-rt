@@ -1,42 +1,36 @@
 use super::*;
 use num_traits::real::Real;
+use glm::GenFloatVec;
+use std::ops::Index;
+use num_traits::Float;
 
-struct AABB {
+pub struct AABB {
     pub min: glm::Vector3<f32>,
     pub max: glm::Vector3<f32>,
 }
 
 impl AABB {
-    pub fn from_vector4<I>(vertices: &I) -> AABB where I : IntoIterator<Item = glm::Vector4<f32>>
-    {
+    pub fn from_vector3<I>(vertices: &I) -> AABB where I: IntoIterator<Item=glm::Vector3<f32>> + Clone {
+        let vertices_clone = (*vertices).clone();
         let mut smallest = glm::Vector3::new(std::f32::MAX, std::f32::MAX, std::f32::MAX);
         let mut largest = glm::Vector3::new(std::f32::MIN, std::f32::MIN, std::f32::MIN);
 
-        for vertex in vertices.into_iter() {
-            if vertex.x < smallest.x {
-                smallest.x = vertex.x;
-            }
+        let mut is_empty = true;
+        for vertex in vertices_clone.into_iter() {
+            is_empty = false;
+            for index in 0..3usize {
+                if vertex[index] < smallest[index] {
+                    smallest[index] = vertex[index];
+                }
 
-            if vertex.y < smallest.y {
-                smallest.y = vertex.y;
-            }
-
-            if vertex.z < smallest.z {
-                smallest.z = vertex.z;
-            }
-
-            if vertex.x > largest.x {
-                largest.x = vertex.x;
-            }
-
-            if vertex.y > largest.y {
-                largest.y = vertex.y;
-            }
-
-            if vertex.z > largest.z {
-                largest.z = vertex.z;
+                if vertex[index] > largest[index] {
+                    largest[index] = vertex[index];
+                }
             }
         }
+
+        assert!(!is_empty, "AABB::from_vector3 called with empty iterator");
+
 
         AABB {
             min: smallest,
@@ -45,56 +39,61 @@ impl AABB {
     }
 
     pub fn transform(&self, mat: &glm::Mat4) -> AABB {
-        let corners: [glm::Vector4<f32>; 8] = [
-            *mat * glm::Vector4 { x: self.min.x, y: self.min.y, z: self.min.z, w: 1.0 },
-            *mat * glm::Vector4 { x: self.min.x, y: self.min.y, z: self.max.z, w: 1.0 },
-            *mat * glm::Vector4 { x: self.min.x, y: self.max.y, z: self.min.z, w: 1.0 },
-            *mat * glm::Vector4 { x: self.max.x, y: self.min.y, z: self.min.z, w: 1.0 },
-
-            *mat * glm::Vector4 { x: self.max.x, y: self.max.y, z: self.max.z, w: 1.0 },
-            *mat * glm::Vector4 { x: self.max.x, y: self.max.y, z: self.min.z, w: 1.0 },
-            *mat * glm::Vector4 { x: self.max.x, y: self.min.y, z: self.max.z, w: 1.0 },
-            *mat * glm::Vector4 { x: self.min.x, y: self.max.y, z: self.max.z, w: 1.0 },
+        let corners = vec![
+            (*mat * glm::Vector4 { x: self.min.x, y: self.min.y, z: self.min.z, w: 1.0 }).truncate(3),
+            (*mat * glm::Vector4 { x: self.min.x, y: self.min.y, z: self.max.z, w: 1.0 }).truncate(3),
+            (*mat * glm::Vector4 { x: self.min.x, y: self.max.y, z: self.min.z, w: 1.0 }).truncate(3),
+            (*mat * glm::Vector4 { x: self.max.x, y: self.min.y, z: self.min.z, w: 1.0 }).truncate(3),
+            (*mat * glm::Vector4 { x: self.max.x, y: self.max.y, z: self.max.z, w: 1.0 }).truncate(3),
+            (*mat * glm::Vector4 { x: self.max.x, y: self.max.y, z: self.min.z, w: 1.0 }).truncate(3),
+            (*mat * glm::Vector4 { x: self.max.x, y: self.min.y, z: self.max.z, w: 1.0 }).truncate(3),
+            (*mat * glm::Vector4 { x: self.min.x, y: self.max.y, z: self.max.z, w: 1.0 }).truncate(3)
         ];
 
-        AABB::from_vector4(&corners.iter())
 
-        /*let mut smallest = glm::Vector3::new(std::f32::MAX, std::f32::MAX, std::f32::MAX);
-        let mut largest = glm::Vector3::new(std::f32::MIN, std::f32::MIN, std::f32::MIN);
-        for corner in &corners {
-            if corner.x < smallest.x {
-                smallest.x = corner.x;
-            }
-
-            if corner.y < smallest.y {
-                smallest.y = corner.y;
-            }
-
-            if corner.z < smallest.z {
-                smallest.z = corner.z;
-            }
-
-            if corner.x > largest.x {
-                largest.x = corner.x;
-            }
-
-            if corner.y > largest.y {
-                largest.y = corner.y;
-            }
-
-            if corner.z > largest.z {
-                largest.z = corner.z;
-            }
-        }
-
-        AABB {
-            min: smallest,
-            max: largest,
-        }*/
+        AABB::from_vector3(&corners)
     }
 }
 
-pub fn triangle_intersect(ray: &Ray, triangle: (glm::Vector3<f32>, glm::Vector3<f32>, glm::Vector3<f32>), distance: &mut f32, result_u: &mut f32, result_v: &mut f32) -> bool {
+pub fn ray_aabb_intersect(ray: &Ray, aabb: &AABB) -> bool {
+    const EPSILON: f32 = 9.99999997475243E-07;
+
+    let mut near = std::f32::MIN_POSITIVE;
+    let mut far = std::f32::MAX;
+
+    for dimension in 0..3 {
+        if ray.direction[dimension].abs() < EPSILON {
+            if ray.origin[dimension] < aabb.min[dimension] || ray.origin[dimension] > aabb.max[dimension] {
+                return false;
+            }
+        }
+        else {
+            let mut t1 = (aabb.min[dimension] - ray.origin[dimension]) / ray.direction[dimension];
+            let mut t2 = (aabb.max[dimension] - ray.origin[dimension]) / ray.direction[dimension];
+            if t1 > t2 {
+                let temp = t1;
+                t1 = t2;
+                t2 = temp;
+            }
+
+            if t1 > near {
+                near = t1;
+            }
+
+            if t2 < far {
+                far = t2;
+            }
+
+            if near > far || far < 0.0 {
+                return false;
+            }
+        }
+    }
+
+    true
+}
+
+pub fn ray_triangle_intersect(ray: &Ray, triangle: (glm::Vector3<f32>, glm::Vector3<f32>, glm::Vector3<f32>), distance: &mut f32, result_u: &mut f32, result_v: &mut f32) -> bool {
     const EPSILON: f32 = 9.99999997475243E-07;
 
     // Find vectors for two edges sharing V1
@@ -153,6 +152,93 @@ pub fn triangle_intersect(ray: &Ray, triangle: (glm::Vector3<f32>, glm::Vector3<
 #[cfg(test)]
 mod tests {
     use super::*;
+    use num_traits::identities::One;
+
+    fn nearly_equal(a: f32, b: f32) -> bool {
+        let abs_a = a.abs();
+        let abs_b = b.abs();
+        let diff = (a - b).abs();
+
+        if a == b { // Handle infinities.
+            true
+        } else if a == 0.0 || b == 0.0 || diff < std::f32::MIN_POSITIVE {
+            // One of a or b is zero (or both are extremely close to it,) use absolute error.
+            diff < (std::f32::EPSILON * std::f32::MIN_POSITIVE)
+        } else { // Use relative error.
+            (diff / f32::min(abs_a + abs_b, std::f32::MAX)) < std::f32::EPSILON
+        }
+    }
+
+    fn assert_identical_vectors(v1: &glm::Vector3<f32>, v2: &glm::Vector3<f32>) {
+        assert!(nearly_equal(v1.x, v2.x), "Vectors are not equal: [{}, {}, {}] and [{}, {}, {}]", v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+        assert!(nearly_equal(v1.y, v2.y), "Vectors are not equal: [{}, {}, {}] and [{}, {}, {}]", v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+        assert!(nearly_equal(v1.z, v2.z), "Vectors are not equal: [{}, {}, {}] and [{}, {}, {}]", v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+        // assert_eq!(glm::is_approx_eq(v1, v2), true, "Vectors are not equal: [{}, {}, {}] and [{}, {}, {}]", v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+    }
+
+    #[test]
+    fn AABB_from_vector3_should_return_correct_bounding_box() {
+        let input = vec![
+            glm::Vector3::new(2.0, 3.0, 4.0),
+            glm::Vector3::new(2.0, 1000.0, 4.0),
+            glm::Vector3::new(0.0, 999.0, 22.0),
+            glm::Vector3::new(2.5, -0.5, 4.0),
+            glm::Vector3::new(2.0, -0.5, -1000.0),
+        ];
+
+        let result = AABB::from_vector3(&input);
+
+        assert_identical_vectors(&result.min, &glm::Vector3::new(0.0, -0.5, -1000.0));
+        assert_identical_vectors(&result.max, &glm::Vector3::new(2.5, 1000.0, 22.0));
+    }
+
+    #[test]
+    fn AABB_from_vector3_should_handle_single_vector() {
+        let input = vec![
+            glm::Vector3::new(2.0, 3.0, 4.0),
+        ];
+
+        let result = AABB::from_vector3(&input);
+
+        assert_identical_vectors(&result.min, &input[0]);
+        assert_identical_vectors(&result.max, &input[0]);
+    }
+
+    #[test]
+    #[should_panic(expected = "AABB::from_vector3 called with empty iterator")]
+    fn AABB_from_vector3_should_panic_on_empty_input() {
+        let input = Vec::new();
+
+        let result = AABB::from_vector3(&input);
+    }
+
+    #[test]
+    fn AABB_transform_should_handle_identity() {
+        let aabb = AABB {
+            min: glm::Vector3::new(0.0, 0.0, 0.0),
+            max: glm::Vector3::new(10.0, 10.0, 10.0),
+        };
+
+        let result = aabb.transform(&glm::Matrix4::<f32>::one());
+        assert_identical_vectors(&result.min, &glm::Vector3::new(0.0, 0.0, 0.0));
+        assert_identical_vectors(&result.max, &glm::Vector3::new(10.0, 10.0, 10.0));
+    }
+
+    #[test]
+    fn AABB_transform_should_handle_composed_transform() {
+        let aabb = AABB {
+            min: glm::Vector3::new(-10.0, -10.0, -20.0),
+            max: glm::Vector3::new(10.0, 10.0, 20.0),
+        };
+        let result = aabb.transform(&glm::ext::scale(&glm::ext::rotate::<f32>(&glm::Matrix4::<f32>::one(), 1.57079633, glm::Vector3::new(0.0, 1.0, 0.0)), glm::Vector3::new(2.0, 2.0, 2.0)));
+
+        let expected = vec![
+            glm::Vector4::new(-20.0, -10.0, -10.0, 1.0),
+            glm::Vector4::new(20.0, 10.0, 10.0, 1.0)
+        ];
+        assert_identical_vectors(&result.min, &glm::Vector3::new(-40.0, -20.0, -20.0));
+        assert_identical_vectors(&result.max, &glm::Vector3::new(40.0, 20.0, 20.0));
+    }
 
     #[test]
     fn triangle_intersect_should_handle_simple_intersection() {
@@ -171,7 +257,7 @@ mod tests {
         let mut u = 0.0f32;
         let mut v = 0.0f32;
 
-        let result = triangle_intersect(&ray, triangle, &mut distance, &mut u, &mut v);
+        let result = ray_triangle_intersect(&ray, triangle, &mut distance, &mut u, &mut v);
         assert_eq!(result, true);
     }
 
@@ -192,7 +278,7 @@ mod tests {
         let mut u = 0.0f32;
         let mut v = 0.0f32;
 
-        let result = triangle_intersect(&ray, triangle, &mut distance, &mut u, &mut v);
+        let result = ray_triangle_intersect(&ray, triangle, &mut distance, &mut u, &mut v);
         assert_eq!(result, true);
     }
 
@@ -213,7 +299,7 @@ mod tests {
         let mut u = 0.0f32;
         let mut v = 0.0f32;
 
-        let result = triangle_intersect(&ray, triangle, &mut distance, &mut u, &mut v);
+        let result = ray_triangle_intersect(&ray, triangle, &mut distance, &mut u, &mut v);
         assert_eq!(result, false);
     }
 
@@ -234,7 +320,7 @@ mod tests {
         let mut u = 0.0f32;
         let mut v = 0.0f32;
 
-        let result = triangle_intersect(&ray, triangle, &mut distance, &mut u, &mut v);
+        let result = ray_triangle_intersect(&ray, triangle, &mut distance, &mut u, &mut v);
         assert_eq!(result, true);
     }
 
@@ -255,7 +341,7 @@ mod tests {
         let mut u = 0.0f32;
         let mut v = 0.0f32;
 
-        let result = triangle_intersect(&ray, triangle, &mut distance, &mut u, &mut v);
+        let result = ray_triangle_intersect(&ray, triangle, &mut distance, &mut u, &mut v);
         assert_eq!(result, false);
     }
 
@@ -276,7 +362,7 @@ mod tests {
         let mut u = 0.0f32;
         let mut v = 0.0f32;
 
-        let result = triangle_intersect(&ray, triangle, &mut distance, &mut u, &mut v);
+        let result = ray_triangle_intersect(&ray, triangle, &mut distance, &mut u, &mut v);
         assert_eq!(distance, 5.0);
     }
 }

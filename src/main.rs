@@ -11,31 +11,59 @@ use crate::texture::Texture;
 use crate::scene::SceneEntity;
 use crate::scene::Scene;
 use num_traits::identities::One;
+use std::borrow::Borrow;
+use crate::core::geom::AABB;
 
 mod content;
 mod renderer;
 mod scene;
 mod core;
 
+
+pub fn func_borrowing<I>(input: &I) -> f32 where I : IntoIterator<Item = f32> + Clone
+{
+    let foo = (*input).clone();
+    for x in foo.into_iter() {
+        if x > 2.0 {
+            return x;
+        }
+    }
+
+    return 0.0;
+}
+
 fn main() {
 
-    // let _foo = content::load("/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj").unwrap();
+    let mut values = vec![0.0f32, 1.2, 2.4];
+
+    let foo = func_borrowing(&values);
+    values.pop();
+    // let foo2 = func_borrowing(values.into_iter());
+    //let foo2 = func_borrowing(&values2);
+
+
+    let _foo = content::load("/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj").unwrap();
     // let _foo = content::load("/Users/emil/code/rust-rt/assets/models/crate/crate1.obj").unwrap();
-    let _foo = content::load("/Users/emil/code/rust-rt/assets/models/horse/horse.obj").unwrap();
+    // let _foo = content::load("/Users/emil/code/rust-rt/assets/models/horse/horse.obj").unwrap();
+    // let mut identity = glm::ext::rotate(&glm::Matrix4::<f32>::one(), 90.0f32.to_radians(), glm::Vector3::new(0.0, 1.0, 0.0));
     let mut identity = glm::Matrix4::<f32>::one();
-    let entity = SceneEntity {
+    /*let entity = SceneEntity {
         mesh: &_foo.meshes[0],
-        inverse_transform: identity // TODO: SHOULD INVERSE
-    };
+        inverse_transform: identity, // TODO: SHOULD INVERSE
+    };*/
+    let entity = SceneEntity::new(&_foo.meshes[0], glm::inverse(&identity));
 
     let mut scene = scene::create_scene();
     scene.add(entity);
-    let mut camera = renderer::Camera::new();
-    camera.set_position(glm::Vector3::new(0.0, 0.0, 500.0));
-    camera.set_direction(glm::Vector3::new(0.0, 0.0, -1.0));
+
 
     let sdl = sdl2::init().unwrap();
-    let window = window::Window::create(&sdl).unwrap();
+    let mut window = window::Window::create(&sdl).unwrap();
+
+    let mut camera = renderer::Camera::new();
+    camera.set_position(glm::Vector3::new(0.0, 0.0, 15.0));
+    camera.set_direction(glm::Vector3::new(0.0, 0.0, -1.0));
+    camera.set_resolution(glm::Vector2::new(window.width(), window.height()));
 
     use std::ffi::CString;
     let vert_shader = render_gl::Shader::from_vert_source(&CString::new(include_str!("triangle.vert")).unwrap()).unwrap();
@@ -44,16 +72,6 @@ fn main() {
     let shader_program = render_gl::Program::from_shaders(
         &[vert_shader, frag_shader]
     ).unwrap();
-
-    /*let vertices: Vec<f32> = vec![
-        -1.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, // nere vänster?
-        1.0, -1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, // nere höger
-        1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, // uppe höger
-
-        -1.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, // nere vänster?
-        1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, // uppe höger
-        -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, // uppe vänster
-    ];*/
 
     let vertices: Vec<f32> = vec![
         -1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, // uppe vänster?
@@ -119,29 +137,35 @@ fn main() {
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
-    let mut pixels: [u8; 256 * 256 * 3] = [0; 256 * 256 * 3];
+    let w = window.width();
+    let mut pixels = vec![0u8; (window.width() * window.height() * 3) as usize]; // Vec::<u8>::with_capacity((window.width() * window.height() * 3) as usize);
+
     let mut color = 0;
-    let texture = Texture::from_pixels(256, 256, pixels.to_vec()).unwrap();
+    let texture = Texture::from_pixels(window.width(), window.height(), &pixels).unwrap();
     texture.bind();
     let mut i = 0;
     let mut event_pump = sdl.event_pump().unwrap();
 
-    for y in 0..256usize {
-        for x in 0..256usize {
+    for y in 0..window.height() as usize {
+        for x in 0..window.width() as usize {
             let ray = camera.cast_ray(x, y);
             let result = scene.trace(&ray);
             let color: glm::Vector3<f32> = match result {
                 Some(intersection) => glm::Vector3::new(1.0, 0.0, 0.0),
-                None => glm::Vector3::new(0.0, 0.0, 0.0)
+                None => glm::Vector3::new(0.0, 1.0, 0.0)
             };
 
-            pixels[(y * 256 * 3) + (x * 3)] = (color.x * 255.0) as u8;
-            pixels[(y * 256 * 3) + (x * 3) + 1] = (color.y * 255.0) as u8;
-            pixels[(y * 256 * 3) + (x * 3) + 2] = (color.z * 255.0) as u8;
+            pixels[(y * window.width() as usize * 3) + (x * 3)] = (color.x * 255.0) as u8;
+            pixels[(y * window.width() as usize * 3) + (x * 3) + 1] = (color.y * 255.0) as u8;
+            pixels[(y * window.width() as usize * 3) + (x * 3) + 2] = (color.z * 255.0) as u8;
         }
 
         println!("row {}", y);
     }
+
+    pixels[(256 * window.width() as usize  * 3) + (256 * 3)] = 0;
+    pixels[(256 * window.width() as usize  * 3) + (256 * 3) + 1] = 0;
+    pixels[(256 * window.width() as usize  * 3) + (256 * 3) + 2] = 0;
 
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -160,7 +184,7 @@ fn main() {
         }
 
 
-        texture.set_pixels(256, 256, pixels.to_vec());
+        texture.set_pixels(window.width(), window.height(), &pixels);
         texture.bind();
 
         /*unsafe {
@@ -168,8 +192,8 @@ fn main() {
                 gl::TEXTURE_2D,
                 0,
                 gl::RGB as i32,
-                256,
-                256,
+                512,
+                512,
                 0,
                 gl::RGB,
                 gl::UNSIGNED_BYTE,

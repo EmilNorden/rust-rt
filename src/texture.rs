@@ -12,7 +12,7 @@ impl Texture {
         }
     }
 
-    pub fn from_pixels(width: i32, height: i32, pixels: Vec<u8>) -> Result<Texture, String> {
+    pub fn from_pixels(width: u32, height: u32, pixels: &Vec<u8>) -> Result<Texture, String> {
         unsafe {
             let mut texture: gl::types::GLuint = 0;
             gl::GenTextures(1, &mut texture);
@@ -23,8 +23,8 @@ impl Texture {
                 gl::TEXTURE_2D,
                 0,
                 gl::RGB as i32,
-                width,
-                height,
+                width as i32,
+                height as i32,
                 0,
                 gl::RGB,
                 gl::UNSIGNED_BYTE,
@@ -49,7 +49,7 @@ impl Texture {
         }
     }
 
-    pub fn set_pixels(&self, width: i32, height: i32, pixels: Vec<u8>) {
+    pub fn set_pixels(&self, width: u32, height: u32, pixels: &Vec<u8>) {
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, self.id);
 
@@ -57,8 +57,8 @@ impl Texture {
                 gl::TEXTURE_2D,
                 0,
                 gl::RGB as i32,
-                width,
-                height,
+                width as i32,
+                height as i32,
                 0,
                 gl::RGB,
                 gl::UNSIGNED_BYTE,

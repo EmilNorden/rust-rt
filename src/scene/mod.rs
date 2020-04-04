@@ -1,17 +1,24 @@
 use crate::core::Intersection;
 use crate::scene::naive_scene::NaiveScene;
 use crate::content::mesh::IndexedMesh;
+use crate::core::geom::*;
 
 mod naive_scene;
 
 pub struct SceneEntity<'a> {
     pub mesh: &'a IndexedMesh,
     pub inverse_transform: glm::Mat4,
+    // pub bounds: AABB,
 }
 
 impl<'a> SceneEntity<'a> {
-    pub fn new(mesh: &'a IndexedMesh, transform: glm::Mat4) {
+    pub fn new(mesh: &'a IndexedMesh, inverse_transform: glm::Mat4) -> SceneEntity<'a> {
+        // let transformed_bounds = mesh.bounds.transform(&transform);
 
+        SceneEntity {
+            mesh,
+            inverse_transform
+        }
     }
 }
 
