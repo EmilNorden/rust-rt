@@ -1,3 +1,5 @@
+#![feature(test)]
+
 extern crate sdl2;
 extern crate gl;
 
@@ -9,16 +11,12 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use crate::texture::Texture;
 use crate::scene::SceneEntity;
-use crate::scene::Scene;
 use num_traits::identities::One;
-use std::borrow::Borrow;
-use crate::core::geom::AABB;
 
 mod content;
 mod renderer;
 mod scene;
 mod core;
-
 
 pub fn func_borrowing<I>(input: &I) -> f32 where I : IntoIterator<Item = f32> + Clone
 {
@@ -33,11 +31,6 @@ pub fn func_borrowing<I>(input: &I) -> f32 where I : IntoIterator<Item = f32> + 
 }
 
 fn main() {
-
-    let mut values = vec![0.0f32, 1.2, 2.4];
-
-    let foo = func_borrowing(&values);
-    values.pop();
     // let foo2 = func_borrowing(values.into_iter());
     //let foo2 = func_borrowing(&values2);
 
@@ -46,22 +39,26 @@ fn main() {
     // let _foo = content::load("/Users/emil/code/rust-rt/assets/models/crate/crate1.obj").unwrap();
     // let _foo = content::load("/Users/emil/code/rust-rt/assets/models/horse/horse.obj").unwrap();
     // let mut identity = glm::ext::rotate(&glm::Matrix4::<f32>::one(), 90.0f32.to_radians(), glm::Vector3::new(0.0, 1.0, 0.0));
-    let mut identity = glm::Matrix4::<f32>::one();
+    let identity = glm::Matrix4::<f32>::one();
     /*let entity = SceneEntity {
         mesh: &_foo.meshes[0],
         inverse_transform: identity, // TODO: SHOULD INVERSE
     };*/
     let entity = SceneEntity::new(&_foo.meshes[0], glm::inverse(&identity));
 
-    let mut scene = scene::create_scene();
-    scene.add(entity);
+    let scene = scene::create_scene();
+    // scene.add(entity);
+
+    let entities = vec![entity];
+    let scene2 = scene::octree_scene::Octree::create(&entities);
+
 
 
     let sdl = sdl2::init().unwrap();
-    let mut window = window::Window::create(&sdl).unwrap();
+    let window = window::Window::create(&sdl).unwrap();
 
     let mut camera = renderer::Camera::new();
-    camera.set_position(glm::Vector3::new(0.0, 0.0, 15.0));
+    camera.set_position(glm::Vector3::new(0.0, 2.5, 15.0));
     camera.set_direction(glm::Vector3::new(0.0, 0.0, -1.0));
     camera.set_resolution(glm::Vector2::new(window.width(), window.height()));
 
@@ -137,19 +134,16 @@ fn main() {
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
-    let w = window.width();
     let mut pixels = vec![0u8; (window.width() * window.height() * 3) as usize]; // Vec::<u8>::with_capacity((window.width() * window.height() * 3) as usize);
 
-    let mut color = 0;
     let texture = Texture::from_pixels(window.width(), window.height(), &pixels).unwrap();
     texture.bind();
-    let mut i = 0;
     let mut event_pump = sdl.event_pump().unwrap();
 
     for y in 0..window.height() as usize {
         for x in 0..window.width() as usize {
             let ray = camera.cast_ray(x, y);
-            let result = scene.trace(&ray);
+            let result = scene2.trace(&ray);
             let color: glm::Vector3<f32> = match result {
                 Some(intersection) => glm::Vector3::new(1.0, 0.0, 0.0),
                 None => glm::Vector3::new(0.0, 1.0, 0.0)
@@ -162,10 +156,6 @@ fn main() {
 
         println!("row {}", y);
     }
-
-    pixels[(256 * window.width() as usize  * 3) + (256 * 3)] = 0;
-    pixels[(256 * window.width() as usize  * 3) + (256 * 3) + 1] = 0;
-    pixels[(256 * window.width() as usize  * 3) + (256 * 3) + 2] = 0;
 
     'running: loop {
         for event in event_pump.poll_iter() {

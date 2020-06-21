@@ -1,9 +1,9 @@
 use crate::core::Intersection;
 use crate::scene::naive_scene::NaiveScene;
 use crate::content::mesh::IndexedMesh;
-use crate::core::geom::*;
 
 mod naive_scene;
+pub mod octree_scene;
 
 pub struct SceneEntity<'a> {
     pub mesh: &'a IndexedMesh,
@@ -28,5 +28,5 @@ pub trait Scene<'a> {
 }
 
 pub fn create_scene<'a>() -> impl Scene<'a> {
-    return NaiveScene::new()
+        return NaiveScene::new()
 }

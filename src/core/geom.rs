@@ -1,15 +1,62 @@
 use super::*;
-use num_traits::real::Real;
-use glm::GenFloatVec;
-use std::ops::Index;
-use num_traits::Float;
 
+#[derive(Clone)]
 pub struct AABB {
     pub min: glm::Vector3<f32>,
     pub max: glm::Vector3<f32>,
 }
 
 impl AABB {
+    pub fn from_bounds<I>(bounds: &I) -> AABB where I: IntoIterator<Item=AABB> + Clone {
+        let bounds_clone = (*bounds).clone();
+
+        let mut result = AABB {
+            min: glm::Vector3::new(std::f32::MAX, std::f32::MAX, std::f32::MAX),
+            max: glm::Vector3::new(std::f32::MIN, std::f32::MIN, std::f32::MIN),
+        };
+
+        for x in bounds_clone.into_iter() {
+            result.expand(&x);
+        }
+
+        result
+    }
+
+    pub fn intersects_bounds(&self, other: &AABB) -> bool {
+        //TODO: WRITE TESTS
+        for dimension in 0..3 {
+            if self.max[dimension] < other.min[dimension] {
+                return false;
+            }
+            if self.min[dimension] > other.max[dimension] {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn from_location_and_size(location: &glm::Vector3<f32>, size: &glm::Vector3<f32>) -> AABB {
+        //TODO: WRITE TESTS
+        AABB { min: location.clone(), max: *location + *size }
+    }
+
+    pub fn size(&self) -> glm::Vector3<f32> {
+        //TODO: WRITE TESTS
+        self.max - self.min
+    }
+
+    pub fn expand(&mut self, other: &AABB) {
+        //TODO: WRITE TESTS
+        self.min.x = self.min.x.min(other.min.x);
+        self.min.y = self.min.y.min(other.min.y);
+        self.min.z = self.min.z.min(other.min.z);
+
+        self.max.x = self.max.x.max(other.max.x);
+        self.max.y = self.max.y.max(other.max.y);
+        self.max.z = self.max.z.max(other.max.z);
+    }
+
     pub fn from_vector3<I>(vertices: &I) -> AABB where I: IntoIterator<Item=glm::Vector3<f32>> + Clone {
         let vertices_clone = (*vertices).clone();
         let mut smallest = glm::Vector3::new(std::f32::MAX, std::f32::MAX, std::f32::MAX);
@@ -66,8 +113,7 @@ pub fn ray_aabb_intersect(ray: &Ray, aabb: &AABB) -> bool {
             if ray.origin[dimension] < aabb.min[dimension] || ray.origin[dimension] > aabb.max[dimension] {
                 return false;
             }
-        }
-        else {
+        } else {
             let mut t1 = (aabb.min[dimension] - ray.origin[dimension]) / ray.direction[dimension];
             let mut t2 = (aabb.max[dimension] - ray.origin[dimension]) / ray.direction[dimension];
             if t1 > t2 {
@@ -177,7 +223,7 @@ mod tests {
     }
 
     #[test]
-    fn AABB_from_vector3_should_return_correct_bounding_box() {
+    fn aabb_from_vector3_should_return_correct_bounding_box() {
         let input = vec![
             glm::Vector3::new(2.0, 3.0, 4.0),
             glm::Vector3::new(2.0, 1000.0, 4.0),
@@ -193,7 +239,7 @@ mod tests {
     }
 
     #[test]
-    fn AABB_from_vector3_should_handle_single_vector() {
+    fn aabb_from_vector3_should_handle_single_vector() {
         let input = vec![
             glm::Vector3::new(2.0, 3.0, 4.0),
         ];
@@ -206,14 +252,14 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "AABB::from_vector3 called with empty iterator")]
-    fn AABB_from_vector3_should_panic_on_empty_input() {
+    fn aabb_from_vector3_should_panic_on_empty_input() {
         let input = Vec::new();
 
-        let result = AABB::from_vector3(&input);
+        let _result = AABB::from_vector3(&input);
     }
 
     #[test]
-    fn AABB_transform_should_handle_identity() {
+    fn aabb_transform_should_handle_identity() {
         let aabb = AABB {
             min: glm::Vector3::new(0.0, 0.0, 0.0),
             max: glm::Vector3::new(10.0, 10.0, 10.0),
@@ -225,24 +271,20 @@ mod tests {
     }
 
     #[test]
-    fn AABB_transform_should_handle_composed_transform() {
+    fn aabb_transform_should_handle_composed_transform() {
         let aabb = AABB {
             min: glm::Vector3::new(-10.0, -10.0, -20.0),
             max: glm::Vector3::new(10.0, 10.0, 20.0),
         };
         let result = aabb.transform(&glm::ext::scale(&glm::ext::rotate::<f32>(&glm::Matrix4::<f32>::one(), 1.57079633, glm::Vector3::new(0.0, 1.0, 0.0)), glm::Vector3::new(2.0, 2.0, 2.0)));
 
-        let expected = vec![
-            glm::Vector4::new(-20.0, -10.0, -10.0, 1.0),
-            glm::Vector4::new(20.0, 10.0, 10.0, 1.0)
-        ];
         assert_identical_vectors(&result.min, &glm::Vector3::new(-40.0, -20.0, -20.0));
         assert_identical_vectors(&result.max, &glm::Vector3::new(40.0, 20.0, 20.0));
     }
 
     #[test]
     fn triangle_intersect_should_handle_simple_intersection() {
-        let mut ray = Ray {
+        let ray = Ray {
             origin: glm::Vector3::new(0.0, 0.0, 0.0),
             direction: glm::Vector3::new(0.0, 0.0, -1.0),
         };
@@ -263,7 +305,7 @@ mod tests {
 
     #[test]
     fn triangle_intersect_should_handle_backface_intersection() {
-        let mut ray = Ray {
+        let ray = Ray {
             origin: glm::Vector3::new(0.0, 0.0, 0.0),
             direction: glm::Vector3::new(0.0, 0.0, -1.0),
         };
@@ -284,7 +326,7 @@ mod tests {
 
     #[test]
     fn triangle_intersect_should_handle_simple_miss() {
-        let mut ray = Ray {
+        let ray = Ray {
             origin: glm::Vector3::new(0.5, 0.5, 0.0),
             direction: glm::Vector3::new(0.0, 0.0, -1.0),
         };
@@ -304,8 +346,8 @@ mod tests {
     }
 
     #[test]
-    fn triangle_intersect_should_handle_scewed_triangle() {
-        let mut ray = Ray {
+    fn triangle_intersect_should_handle_skewed_triangle() {
+        let ray = Ray {
             origin: glm::Vector3::new(0.0, 0.0, 0.0),
             direction: glm::Vector3::new(0.0, 1.0, 0.0),
         };
@@ -326,7 +368,7 @@ mod tests {
 
     #[test]
     fn triangle_intersect_should_handle_parallel_triangle_miss() {
-        let mut ray = Ray {
+        let ray = Ray {
             origin: glm::Vector3::new(0.0, 0.0, 0.0),
             direction: glm::Vector3::new(1.0, 0.0, 0.0),
         };
@@ -347,7 +389,7 @@ mod tests {
 
     #[test]
     fn triangle_intersect_should_return_correct_distance() {
-        let mut ray = Ray {
+        let ray = Ray {
             origin: glm::Vector3::new(0.0, 0.0, 0.0),
             direction: glm::Vector3::new(0.0, 0.0, -1.0),
         };
@@ -362,7 +404,7 @@ mod tests {
         let mut u = 0.0f32;
         let mut v = 0.0f32;
 
-        let result = ray_triangle_intersect(&ray, triangle, &mut distance, &mut u, &mut v);
+        let _ = ray_triangle_intersect(&ray, triangle, &mut distance, &mut u, &mut v);
         assert_eq!(distance, 5.0);
     }
 }

@@ -6,7 +6,6 @@ pub struct Intersection {
     pub distance: f32
 }
 
-#[allow(dead_code)]
 pub struct Ray {
     pub origin: glm::Vector3<f32>,
     pub direction: glm::Vector3<f32>,

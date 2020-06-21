@@ -80,11 +80,12 @@ pub fn load(path: &str) -> Result<Model, &str> {
     Ok(result)
 }
 
+#[allow(dead_code)]
 pub fn load_assimp(path: &str) -> Result<i32, &str> {
     let mut importer = assimp::import::Importer::new();
     setup_importer(&mut importer);
 
-    let result = importer.read_file(path).unwrap();
+    let _result = importer.read_file(path).unwrap();
 
     Ok(32)
 }

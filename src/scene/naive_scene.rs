@@ -1,5 +1,4 @@
 use crate::scene::{SceneEntity, Scene};
-use glm::Vector3;
 use crate::core::{Ray, Intersection};
 
 pub struct NaiveScene<'a> {
@@ -35,3 +34,4 @@ impl<'a> Scene<'a> for NaiveScene<'a> {
         self.entities.push(entity);
     }
 }
+

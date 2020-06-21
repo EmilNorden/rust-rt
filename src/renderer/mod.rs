@@ -83,11 +83,13 @@ impl Camera {
         self.rebuild_image_plane = true;
     }
 
+    #[allow(dead_code)]
     pub fn set_up(&mut self, up: Vec3<f32>) {
         self.up = up;
         self.rebuild_image_plane = true;
     }
 
+    #[allow(dead_code)]
     pub fn set_field_of_view(&mut self, value: f32) {
         self.fov = value;
         self.rebuild_image_plane = true;
