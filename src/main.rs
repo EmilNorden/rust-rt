@@ -11,12 +11,15 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use crate::texture::Texture;
 use crate::scene::SceneEntity;
+use crate::scene::Scene;
 use num_traits::identities::One;
+use crate::content::mesh_loader::{DefaultMeshLoader, MeshLoader};
 
 mod content;
 mod renderer;
 mod scene;
 mod core;
+mod space_partitioning;
 
 pub fn func_borrowing<I>(input: &I) -> f32 where I : IntoIterator<Item = f32> + Clone
 {
@@ -34,23 +37,36 @@ fn main() {
     // let foo2 = func_borrowing(values.into_iter());
     //let foo2 = func_borrowing(&values2);
 
+    let mut loader = DefaultMeshLoader {};
 
-    let _foo = content::load("/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj").unwrap();
+
+    let _foo = loader.load("/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj").unwrap();
     // let _foo = content::load("/Users/emil/code/rust-rt/assets/models/crate/crate1.obj").unwrap();
     // let _foo = content::load("/Users/emil/code/rust-rt/assets/models/horse/horse.obj").unwrap();
     // let mut identity = glm::ext::rotate(&glm::Matrix4::<f32>::one(), 90.0f32.to_radians(), glm::Vector3::new(0.0, 1.0, 0.0));
+
+    // Uncomment for apricot
     let identity = glm::Matrix4::<f32>::one();
+
+    // Uncomment for horse
+    //let identity = glm::ext::scale(&glm::Matrix4::<f32>::one(), glm::Vector3::<f32>::new(1.0, 1.0, 1.0)) * glm::ext::rotate(&glm::Matrix4::<f32>::one(), 90.0f32.to_radians(), glm::Vector3::new(0.0, 1.0, 0.0));
     /*let entity = SceneEntity {
         mesh: &_foo.meshes[0],
         inverse_transform: identity, // TODO: SHOULD INVERSE
     };*/
-    let entity = SceneEntity::new(&_foo.meshes[0], glm::inverse(&identity));
 
-    let scene = scene::create_scene();
+
     // scene.add(entity);
 
-    let entities = vec![entity];
-    let scene2 = scene::octree_scene::Octree::create(&entities);
+    // let entities = vec![entity];
+    let entities: Vec<SceneEntity> = _foo.meshes.iter().map(|x| SceneEntity::new(x, glm::inverse(&identity))).collect();
+    //let scene2 = scene::octree_scene::Octree::create(&entities, 4);
+
+    let mut scene2 = scene::create_scene();
+
+    for x in entities {
+        scene2.add(x);
+    }
 
 
 
@@ -59,7 +75,9 @@ fn main() {
 
     let mut camera = renderer::Camera::new();
     camera.set_position(glm::Vector3::new(0.0, 2.5, 15.0));
+    // camera.set_position(glm::Vector3::new(0.0, 300.0, 300.0));
     camera.set_direction(glm::Vector3::new(0.0, 0.0, -1.0));
+    // camera.set_direction(glm::Vector3::new(0.0, -1.0, -1.0));
     camera.set_resolution(glm::Vector2::new(window.width(), window.height()));
 
     use std::ffi::CString;

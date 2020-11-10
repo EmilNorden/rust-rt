@@ -59,7 +59,7 @@ impl<'a> Octree<'a> {
         self.trace_octant(ray, &OctantId { id: 0 })
     }
 
-    pub fn create(entities: &'a Vec<SceneEntity<'a>>) -> Octree<'a> {
+    pub fn create(entities: &'a Vec<SceneEntity<'a>>, depth_limit: usize) -> Octree<'a> {
         let bounds = AABB::from_bounds(&entities.iter().map(|x| x.mesh.bounds.transform(&glm::inverse(&x.inverse_transform))));
 
         let root = Octant {
@@ -73,16 +73,16 @@ impl<'a> Octree<'a> {
             octants: vec![root],
         };
 
-        tree.split_octant(OctantId { id: 0 });
+        tree.split_octant(OctantId { id: 0 }, depth_limit);
 
         tree
     }
 
-    fn split_octant(&mut self, current: OctantId) {
+    fn split_octant(&mut self, current: OctantId, depth_limit: usize) {
         const ENTITY_THRESHOLD: usize = 4;
 
         // let octant = &self.octants[current.id];
-        if self.octants[current.id].entities.len() < ENTITY_THRESHOLD {
+        if self.octants[current.id].entities.len() < ENTITY_THRESHOLD || depth_limit == 0 {
             return;
         }
 
@@ -100,7 +100,7 @@ impl<'a> Octree<'a> {
                         }
                     }
 
-                    self.insert_new_octant(&current, child_entities, child_bounds);
+                    self.insert_new_octant(&current, child_entities, child_bounds, depth_limit);
                 }
             }
         }
@@ -108,7 +108,7 @@ impl<'a> Octree<'a> {
         self.octants[current.id].entities.clear();
     }
 
-    fn insert_new_octant(&mut self, parent: &OctantId, entities: Vec<EntityId>, child_bounds: AABB) {
+    fn insert_new_octant(&mut self, parent: &OctantId, entities: Vec<EntityId>, child_bounds: AABB, depth_limit: usize) {
         let child = Octant {
             entities,
             children: Vec::new(),
@@ -119,7 +119,7 @@ impl<'a> Octree<'a> {
         self.octants[parent.id].children.push(OctantId { id: child_index });
         self.octants.push(child);
 
-        self.split_octant(OctantId { id: child_index });
+        self.split_octant(OctantId { id: child_index }, depth_limit - 1);
     }
 }
 
@@ -132,7 +132,7 @@ mod tests {
     fn bench_single_mesh_intersection(b: &mut Bencher) {
 
         // TODO: How to avoid this ugly super stuff?
-        let _foo = super::super::super::content::load("/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj").unwrap();
+        // let _foo = super::super::super::content::load("/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj").unwrap();
         b.iter(|| {
 
         });

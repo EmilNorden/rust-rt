@@ -79,7 +79,7 @@ impl Camera {
     }
 
     pub fn set_direction(&mut self, dir: Vec3<f32>) {
-        self.direction = dir;
+        self.direction = glm::normalize(dir);
         self.rebuild_image_plane = true;
     }
 
