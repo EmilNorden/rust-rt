@@ -1,23 +1,26 @@
 use crate::core::Intersection;
-use crate::scene::naive_scene::NaiveScene;
-use crate::content::mesh::IndexedMesh;
+use crate::core::geom::AABB;
+use crate::content::octree_mesh::OctreeMesh;
 
 mod naive_scene;
 pub mod octree_scene;
 
 pub struct SceneEntity<'a> {
-    pub mesh: &'a IndexedMesh,
+    pub mesh: &'a OctreeMesh,
     pub inverse_transform: glm::Mat4,
-    // pub bounds: AABB,
+    pub bounds: AABB,
 }
 
 impl<'a> SceneEntity<'a> {
-    pub fn new(mesh: &'a IndexedMesh, inverse_transform: glm::Mat4) -> SceneEntity<'a> {
-        // let transformed_bounds = mesh.bounds.transform(&transform);
+    pub fn new(mesh: &'a OctreeMesh, world_transform: glm::Mat4) -> SceneEntity<'a> {
+        let inversed_world_transform = glm::inverse(&world_transform);
+        let transformed_bounds = mesh.bounds().transform(&world_transform);
+
 
         SceneEntity {
             mesh,
-            inverse_transform
+            inverse_transform: inversed_world_transform,
+            bounds: transformed_bounds
         }
     }
 }
@@ -25,8 +28,4 @@ impl<'a> SceneEntity<'a> {
 pub trait Scene<'a> {
     fn trace(&self, ray: &crate::core::Ray) -> Option<Intersection>;
     fn add(&mut self, entity: SceneEntity<'a>);
-}
-
-pub fn create_scene<'a>() -> impl Scene<'a> {
-        return NaiveScene::new()
 }

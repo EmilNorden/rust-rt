@@ -33,7 +33,7 @@ impl<'a> Octree<'a> {
             let mut best_distance = std::f32::MAX;
             for x in &octant.entities {
                 let transformed_ray = ray.transform(&self.entities[x.id].inverse_transform);
-                if let Some(intersection) = self.entities[x.id].mesh.intersect(&transformed_ray) {
+                if let Some(intersection) = self.entities[x.id].mesh.intersects(&transformed_ray) {
                     if intersection.distance < best_distance {
                         best_distance = intersection.distance;
                         result = Some(intersection);
@@ -60,12 +60,12 @@ impl<'a> Octree<'a> {
     }
 
     pub fn create(entities: &'a Vec<SceneEntity<'a>>, depth_limit: usize) -> Octree<'a> {
-        let bounds = AABB::from_bounds(&entities.iter().map(|x| x.mesh.bounds.transform(&glm::inverse(&x.inverse_transform))));
+        let bounds = AABB::from_bounds(&entities.iter().map(|x| x.mesh.bounds().transform(&glm::inverse(&x.inverse_transform))));
 
         let root = Octant {
             entities: (0..entities.len()).map(|x| EntityId { id: x }).collect(),
             children: Vec::new(),
-            bounds,
+            bounds
         };
 
         let mut tree = Octree {
@@ -95,7 +95,7 @@ impl<'a> Octree<'a> {
                     let mut child_entities = Vec::new();
                     for x in &self.octants[current.id].entities {
                         let entity: &SceneEntity = &self.entities[x.id];
-                        if entity.mesh.bounds.transform(&glm::inverse(&entity.inverse_transform)).intersects_bounds(&child_bounds) {
+                        if entity.mesh.bounds().transform(&glm::inverse(&entity.inverse_transform)).intersects_bounds(&child_bounds) {
                             child_entities.push(x.clone());
                         }
                     }

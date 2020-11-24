@@ -36,6 +36,12 @@ impl AABB {
         true
     }
 
+    pub fn contains(&self, point: &glm::Vector3<f32>) -> bool {
+        point.x >= self.min.x && point.x < self.max.x &&
+            point.y >= self.min.y && point.y < self.max.y &&
+            point.z >= self.min.z && point.z < self.max.z
+    }
+
     pub fn from_location_and_size(location: &glm::Vector3<f32>, size: &glm::Vector3<f32>) -> AABB {
         //TODO: WRITE TESTS
         AABB { min: location.clone(), max: *location + *size }

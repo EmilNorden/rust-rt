@@ -1,9 +1,14 @@
+use crate::content::octree_mesh::OctreeMesh;
+
 pub mod geom;
 
-pub struct Intersection {
+pub struct Intersection<'a> {
+    pub mesh: &'a OctreeMesh,
     pub u: f32,
     pub v: f32,
-    pub distance: f32
+    pub indices: (u32, u32, u32),
+    pub distance: f32,
+    pub material_index: usize,
 }
 
 pub struct Ray {

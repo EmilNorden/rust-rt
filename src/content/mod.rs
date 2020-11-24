@@ -1,17 +1,14 @@
 extern crate assimp;
 
-use crate::content::mesh::{Model, Material, IndexedMesh};
-use crate::core::geom::AABB;
-use crate::content::mesh_split::{LinearMeshSplit, MeshSplit};
-use std::convert::TryInto;
-
+pub mod model;
+pub mod model_loader;
 pub mod mesh;
-pub mod mesh_loader;
-pub mod mesh_split;
-pub mod mesh_cache;
+pub mod octree_mesh;
+pub mod material;
+pub mod store;
 
 #[allow(dead_code)]
-pub fn load_assimp(path: &str) -> Result<i32, &str> {
+pub fn load_assimp(_path: &str) -> Result<i32, &str> {
     /*let mut importer = assimp::import::Importer::new();
     setup_importer(&mut importer);
 
@@ -50,6 +47,7 @@ pub fn load_assimp(path: &str) -> Result<i32, &str> {
     Err("12")
 }
 
+#[allow(dead_code)]
 fn setup_importer(importer: &mut assimp::import::Importer) {
     importer.calc_tangent_space(|v| {
         v.enable = true;

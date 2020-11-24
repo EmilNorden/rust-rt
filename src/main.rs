@@ -2,6 +2,7 @@
 
 extern crate sdl2;
 extern crate gl;
+extern crate image;
 
 pub mod render_gl;
 pub mod texture;
@@ -11,42 +12,43 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use crate::texture::Texture;
 use crate::scene::SceneEntity;
-use crate::scene::Scene;
 use num_traits::identities::One;
-use crate::content::mesh_loader::{DefaultMeshLoader, MeshLoader};
+use crate::content::model_loader::{ModelLoader};
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::{Read, BufReader};
+use std::cell::RefCell;
+use std::sync::Arc;
+use crate::scene_description::SceneDescription;
+use crate::content::store::ModelStore;
 
 mod content;
 mod renderer;
 mod scene;
 mod core;
-mod space_partitioning;
+mod scene_description;
+mod frame_processor;
 
-pub fn func_borrowing<I>(input: &I) -> f32 where I : IntoIterator<Item = f32> + Clone
-{
-    let foo = (*input).clone();
-    for x in foo.into_iter() {
-        if x > 2.0 {
-            return x;
-        }
-    }
-
-    return 0.0;
-}
 
 fn main() {
-    // let foo2 = func_borrowing(values.into_iter());
-    //let foo2 = func_borrowing(&values2);
+    let loader = ModelLoader{};
+    let mut store = ModelStore::new(loader);
+    // let args = std::env::args();
+    // Input path should be taken from args
+    let file = File::open("/Users/emil/code/rust-rt/src/test.json").unwrap();
+    let reader = BufReader::new(file);
+    let b: SceneDescription = serde_json::from_reader(reader).unwrap();
 
-    let mut loader = DefaultMeshLoader {};
+    let keyframe = &b.keyframes()[0];
+    let updates = &keyframe.updates()[0];
 
 
-    let _foo = loader.load("/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj").unwrap();
-    // let _foo = content::load("/Users/emil/code/rust-rt/assets/models/crate/crate1.obj").unwrap();
-    // let _foo = content::load("/Users/emil/code/rust-rt/assets/models/horse/horse.obj").unwrap();
-    // let mut identity = glm::ext::rotate(&glm::Matrix4::<f32>::one(), 90.0f32.to_radians(), glm::Vector3::new(0.0, 1.0, 0.0));
-
-    // Uncomment for apricot
+    let _foo = store.load("apricot", "/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj");
     let identity = glm::Matrix4::<f32>::one();
+
+    //let _foo = loader.load("/Users/emil/code/rust-rt/assets/models/crate/crate1.obj").unwrap();
+    //let identity = glm::ext::scale(&glm::Matrix4::<f32>::one(), glm::Vector3::<f32>::new(0.050, 0.050, 0.050));
+    //let identity2 = glm::ext::translate(&glm::Matrix4::<f32>::one(), glm::Vector3::new(-6.0, 0.0, 0.0)) * glm::ext::scale(&glm::Matrix4::<f32>::one(), glm::Vector3::<f32>::new(0.050, 0.050, 0.050));
 
     // Uncomment for horse
     //let identity = glm::ext::scale(&glm::Matrix4::<f32>::one(), glm::Vector3::<f32>::new(1.0, 1.0, 1.0)) * glm::ext::rotate(&glm::Matrix4::<f32>::one(), 90.0f32.to_radians(), glm::Vector3::new(0.0, 1.0, 0.0));
@@ -58,17 +60,10 @@ fn main() {
 
     // scene.add(entity);
 
-    // let entities = vec![entity];
-    let entities: Vec<SceneEntity> = _foo.meshes.iter().map(|x| SceneEntity::new(x, glm::inverse(&identity))).collect();
-    //let scene2 = scene::octree_scene::Octree::create(&entities, 4);
-
-    let mut scene2 = scene::create_scene();
-
-    for x in entities {
-        scene2.add(x);
-    }
-
-
+    let entities = vec![
+        SceneEntity::new(&_foo.meshes[0], identity),
+    ];
+    let scene2 = scene::octree_scene::Octree::create(&entities, 4);
 
     let sdl = sdl2::init().unwrap();
     let window = window::Window::create(&sdl).unwrap();
@@ -163,7 +158,12 @@ fn main() {
             let ray = camera.cast_ray(x, y);
             let result = scene2.trace(&ray);
             let color: glm::Vector3<f32> = match result {
-                Some(intersection) => glm::Vector3::new(1.0, 0.0, 0.0),
+                Some(intersection) => {
+                    let _normal = intersection.mesh.calculate_object_space_normal(&intersection.indices, intersection.u, intersection.v);
+                    let texcoords = intersection.mesh.calculate_texcoords(&intersection.indices, intersection.u, intersection.v);
+                    let material = &_foo.materials[intersection.material_index];
+                    material.sample_diffuse(texcoords.x, texcoords.y)
+                },
                 None => glm::Vector3::new(0.0, 1.0, 0.0)
             };
 
@@ -186,28 +186,11 @@ fn main() {
             }
         }
 
-        unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT);
-            gl::FrontFace(gl::CW);
-        }
+        window.clear();
 
 
         texture.set_pixels(window.width(), window.height(), &pixels);
         texture.bind();
-
-        /*unsafe {
-            gl::TexImage2D(
-                gl::TEXTURE_2D,
-                0,
-                gl::RGB as i32,
-                512,
-                512,
-                0,
-                gl::RGB,
-                gl::UNSIGNED_BYTE,
-                pixels.as_ptr() as *const c_void
-            );
-        }*/
 
         shader_program.set_used();
         unsafe {
@@ -218,12 +201,6 @@ fn main() {
                 6,
             );
         }
-
-        // window.gl_swap_window();
         window.swap();
     }
-
-
-    // let importer = assimp::Importer::new();
-    println!("Hello, world!77");
 }

@@ -2,7 +2,7 @@ use sdl2::video::GLContext;
 
 pub struct Window {
     window: sdl2::video::Window,
-    context: GLContext,
+    _context: GLContext,
 }
 
 impl Window {
@@ -36,7 +36,7 @@ impl Window {
 
         let result = Window {
             window: sdl_window,
-            context: gl_context
+            _context: gl_context
         };
         Ok(result)
     }
@@ -55,5 +55,12 @@ impl Window {
 
     pub fn swap(&self) {
         self.window.gl_swap_window();
+    }
+
+    pub fn clear(&self) {
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::FrontFace(gl::CW);
+        }
     }
 }

@@ -5,6 +5,7 @@ pub struct NaiveScene<'a> {
     entities: Vec<SceneEntity<'a>>
 }
 
+#[allow(dead_code)]
 impl<'a> NaiveScene<'a> {
     pub fn new() -> NaiveScene<'a> {
         NaiveScene {
@@ -19,7 +20,7 @@ impl<'a> Scene<'a> for NaiveScene<'a> {
         let mut best_distance = std::f32::MAX;
         for x in &self.entities {
             let transformed_ray = ray.transform(&x.inverse_transform);
-            if let Some(intersection) = x.mesh.intersect(&transformed_ray) {
+            if let Some(intersection) = x.mesh.intersects(&transformed_ray) {
                 if intersection.distance < best_distance {
                     best_distance = intersection.distance;
                     result = Some(intersection);
