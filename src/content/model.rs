@@ -1,5 +1,7 @@
 use crate::content::octree_mesh::OctreeMesh;
 use crate::content::material::Material;
+use crate::core::geom::AABB;
+use crate::core::{Intersection, Ray};
 
 /*pub struct Mesh {
     pub coordinates: Vec<glm::Vector3<f32>>,
@@ -13,6 +15,41 @@ use crate::content::material::Material;
 pub struct Model {
     pub meshes: Vec<OctreeMesh>,
     pub materials: Vec<Material>,
+    pub bounds: AABB,
+}
+
+impl Model {
+    pub fn new(meshes: Vec<OctreeMesh>, materials: Vec<Material>) -> Self {
+        let first_child_bounds = match &meshes.first() {
+            None => panic!("Cannot create a model with no meshes!"),
+            Some(mesh) => mesh.bounds().clone()
+        };
+        let bounds =  meshes.iter().fold(first_child_bounds, | acc, x| AABB::combine(&acc, x.bounds()));
+        Model {
+            meshes,
+            materials,
+            bounds
+        }
+    }
+    pub fn bounds(&self) -> &AABB {
+        &self.bounds
+    }
+
+    pub fn intersects(&self, ray: &Ray) -> Option<Intersection> {
+        let mut result: Option<Intersection> = None;
+        let mut best_distance: f32 = std::f32::MAX;
+        for mesh in &self.meshes {
+            if let Some(mesh_result) = mesh.intersects(ray) {
+                if mesh_result.distance < best_distance {
+                    best_distance = mesh_result.distance;
+                    result = Some(mesh_result);
+                }
+            }
+
+        }
+
+        result
+    }
 }
 
 /*impl Mesh {

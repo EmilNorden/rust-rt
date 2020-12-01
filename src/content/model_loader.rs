@@ -106,10 +106,7 @@ impl ModelLoader
                 OctreeMesh::new(coordinates, texcoords, normals, indices, x.mesh.material_id.unwrap())
             }).collect();
 
-        let result = Model {
-            materials,
-            meshes,
-        };
+        let result = Model::new(meshes, materials);
 
         //let split = LinearMeshSplit {};
         Ok(result)

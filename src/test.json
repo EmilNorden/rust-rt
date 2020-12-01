@@ -7,13 +7,39 @@
   ],
   "keyframes": [
     {
+      "timestamp": 0,
       "updates": [
         {
           "entity_name": "fruit",
           "model_name": "apricot_model",
-          "position": [0, 0, 0],
-          "rotation": [0, 0, 0],
-          "scale": [1, 1, 1]
+          "position": [0, 0, 0]
+        }
+      ]
+    },
+    {
+      "timestamp": 2,
+      "updates": [
+        {
+          "entity_name": "fruit",
+          "rotation": [0, 90, 0]
+        }
+      ]
+    },
+    {
+      "timestamp": 6,
+      "updates": [
+        {
+          "entity_name": "fruit",
+          "rotation": [0, 180, 0]
+        }
+      ]
+    },
+    {
+      "timestamp": 10,
+      "updates": [
+        {
+          "entity_name": "fruit",
+          "position": [10, 0, 0]
         }
       ]
     }

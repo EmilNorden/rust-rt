@@ -52,6 +52,13 @@ impl AABB {
         self.max - self.min
     }
 
+    pub fn combine(first: &AABB, second: &AABB) -> AABB{
+        let mut result = first.clone();
+        result.expand(second);
+
+        result
+    }
+
     pub fn expand(&mut self, other: &AABB) {
         //TODO: WRITE TESTS
         self.min.x = self.min.x.min(other.min.x);

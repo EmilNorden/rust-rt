@@ -1,4 +1,6 @@
 #![feature(test)]
+#![feature(in_band_lifetimes)]
+#![feature(drain_filter)]
 
 extern crate sdl2;
 extern crate gl;
@@ -19,15 +21,18 @@ use std::fs::File;
 use std::io::{Read, BufReader};
 use std::cell::RefCell;
 use std::sync::Arc;
-use crate::scene_description::SceneDescription;
+use crate::render_configuration::{RenderConfiguration, ConfigurationParser};
 use crate::content::store::ModelStore;
+use crate::frame_processor::FrameProcessor;
+use crate::keyframe_interpolator::KeyFrameInterpolator;
 
 mod content;
 mod renderer;
 mod scene;
 mod core;
-mod scene_description;
+mod render_configuration;
 mod frame_processor;
+mod keyframe_interpolator;
 
 
 fn main() {
@@ -35,33 +40,22 @@ fn main() {
     let mut store = ModelStore::new(loader);
     // let args = std::env::args();
     // Input path should be taken from args
-    let file = File::open("/Users/emil/code/rust-rt/src/test.json").unwrap();
-    let reader = BufReader::new(file);
-    let b: SceneDescription = serde_json::from_reader(reader).unwrap();
-
-    let keyframe = &b.keyframes()[0];
-    let updates = &keyframe.updates()[0];
+    let mut config = ConfigurationParser{}.parse("/Users/emil/code/rust-rt/src/test.json");
+    // let keyframe = &b.keyframes()[0];
+    // let updates = &keyframe.updates()[0];
 
 
-    let _foo = store.load("apricot", "/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj");
+    // let _foo = store.load("apricot", "/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj");
     let identity = glm::Matrix4::<f32>::one();
 
-    //let _foo = loader.load("/Users/emil/code/rust-rt/assets/models/crate/crate1.obj").unwrap();
-    //let identity = glm::ext::scale(&glm::Matrix4::<f32>::one(), glm::Vector3::<f32>::new(0.050, 0.050, 0.050));
-    //let identity2 = glm::ext::translate(&glm::Matrix4::<f32>::one(), glm::Vector3::new(-6.0, 0.0, 0.0)) * glm::ext::scale(&glm::Matrix4::<f32>::one(), glm::Vector3::<f32>::new(0.050, 0.050, 0.050));
-
-    // Uncomment for horse
-    //let identity = glm::ext::scale(&glm::Matrix4::<f32>::one(), glm::Vector3::<f32>::new(1.0, 1.0, 1.0)) * glm::ext::rotate(&glm::Matrix4::<f32>::one(), 90.0f32.to_radians(), glm::Vector3::new(0.0, 1.0, 0.0));
-    /*let entity = SceneEntity {
-        mesh: &_foo.meshes[0],
-        inverse_transform: identity, // TODO: SHOULD INVERSE
-    };*/
-
+    // let foo: HashMap<String, String> = b.model_definitions().iter().map(|x| (x.name.clone(), x.path.clone())).collect();
+    let interp = KeyFrameInterpolator{}.interpolate(&mut config.keyframes);
+    let fp = FrameProcessor::new(config.keyframes, config.model_path_lookup,  store);
 
     // scene.add(entity);
 
     let entities = vec![
-        SceneEntity::new(&_foo.meshes[0], identity),
+        //SceneEntity::new(&_foo, identity),
     ];
     let scene2 = scene::octree_scene::Octree::create(&entities, 4);
 
@@ -161,8 +155,9 @@ fn main() {
                 Some(intersection) => {
                     let _normal = intersection.mesh.calculate_object_space_normal(&intersection.indices, intersection.u, intersection.v);
                     let texcoords = intersection.mesh.calculate_texcoords(&intersection.indices, intersection.u, intersection.v);
-                    let material = &_foo.materials[intersection.material_index];
-                    material.sample_diffuse(texcoords.x, texcoords.y)
+                    // let material = &_foo.materials[intersection.material_index];
+                    //material.sample_diffuse(texcoords.x, texcoords.y)
+                    glm::Vector3::new(0.0, 0.0, 0.0)
                 },
                 None => glm::Vector3::new(0.0, 1.0, 0.0)
             };
