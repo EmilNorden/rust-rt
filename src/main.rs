@@ -45,19 +45,13 @@ fn main() {
     // let updates = &keyframe.updates()[0];
 
 
-    // let _foo = store.load("apricot", "/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj");
+    let _foo = store.load("apricot", "/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj");
     let identity = glm::Matrix4::<f32>::one();
 
-    // let foo: HashMap<String, String> = b.model_definitions().iter().map(|x| (x.name.clone(), x.path.clone())).collect();
-    let interp = KeyFrameInterpolator{}.interpolate(&mut config.keyframes);
-    let fp = FrameProcessor::new(config.keyframes, config.model_path_lookup,  store);
-
-    // scene.add(entity);
-
     let entities = vec![
-        //SceneEntity::new(&_foo, identity),
+        SceneEntity::new(_foo),
     ];
-    let scene2 = scene::octree_scene::Octree::create(&entities, 4);
+    let scene2 = scene::octree_scene::Octree::create(entities, 4);
 
     let sdl = sdl2::init().unwrap();
     let window = window::Window::create(&sdl).unwrap();
@@ -155,11 +149,12 @@ fn main() {
                 Some(intersection) => {
                     let _normal = intersection.mesh.calculate_object_space_normal(&intersection.indices, intersection.u, intersection.v);
                     let texcoords = intersection.mesh.calculate_texcoords(&intersection.indices, intersection.u, intersection.v);
-                    // let material = &_foo.materials[intersection.material_index];
-                    //material.sample_diffuse(texcoords.x, texcoords.y)
-                    glm::Vector3::new(0.0, 0.0, 0.0)
+                    match intersection.material {
+                        Some(m) => m.sample_diffuse(texcoords.x, texcoords.y),
+                        None => glm::vec3(0.0, 0.0, 0.0),
+                    }
                 },
-                None => glm::Vector3::new(0.0, 1.0, 0.0)
+                None => glm::vec3(0.0, 1.0, 0.0)
             };
 
             pixels[(y * window.width() as usize * 3) + (x * 3)] = (color.x * 255.0) as u8;

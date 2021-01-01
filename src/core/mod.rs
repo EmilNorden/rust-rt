@@ -1,9 +1,11 @@
 use crate::content::octree_mesh::OctreeMesh;
+use crate::content::material::Material;
 
 pub mod geom;
 
 pub struct Intersection<'a> {
     pub mesh: &'a OctreeMesh,
+    pub material: Option<&'a Material>,
     pub u: f32,
     pub v: f32,
     pub indices: (u32, u32, u32),

@@ -39,15 +39,15 @@ impl Model {
         let mut result: Option<Intersection> = None;
         let mut best_distance: f32 = std::f32::MAX;
         for mesh in &self.meshes {
-            if let Some(mesh_result) = mesh.intersects(ray) {
+            if let Some(mut mesh_result) = mesh.intersects(ray) {
                 if mesh_result.distance < best_distance {
                     best_distance = mesh_result.distance;
+                    mesh_result.material = self.materials.get(mesh_result.material_index);
                     result = Some(mesh_result);
                 }
             }
 
         }
-
         result
     }
 }

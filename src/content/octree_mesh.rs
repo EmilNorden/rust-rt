@@ -99,6 +99,7 @@ impl OctreeMesh {
                     indices: result_indices,
                     distance: closest_distance,
                     material_index: self.material_index,
+                    material: None,
                 });
             }
 

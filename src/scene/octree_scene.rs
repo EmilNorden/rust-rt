@@ -9,8 +9,8 @@ struct OctantId { pub id: usize }
 #[derive(Clone)]
 struct EntityId { pub id: usize }
 
-pub struct Octree<'a> {
-    entities: Vec<&'a SceneEntity<'a>>,
+pub struct Octree {
+    entities: Vec<SceneEntity>,
     octants: Vec<Octant>,
 }
 
@@ -20,7 +20,7 @@ struct Octant {
     bounds: AABB,
 }
 
-impl<'a> Octree<'a> {
+impl Octree {
     fn trace_octant(&self, ray: &Ray, octant_id: &OctantId) -> Option<Intersection> {
         let mut result: Option<Intersection> = None;
         let octant = &self.octants[octant_id.id];
@@ -33,7 +33,7 @@ impl<'a> Octree<'a> {
             let mut best_distance = std::f32::MAX;
             for x in &octant.entities {
                 let transformed_ray = ray.transform(&self.entities[x.id].inverse_transform);
-                if let Some(intersection) = self.entities[x.id].mesh.intersects(&transformed_ray) {
+                if let Some(intersection) = self.entities[x.id].model.intersects(&transformed_ray) {
                     if intersection.distance < best_distance {
                         best_distance = intersection.distance;
                         result = Some(intersection);
@@ -59,8 +59,8 @@ impl<'a> Octree<'a> {
         self.trace_octant(ray, &OctantId { id: 0 })
     }
 
-    pub fn create(entities: &'a Vec<SceneEntity<'a>>, depth_limit: usize) -> Octree<'a> {
-        let bounds = AABB::from_bounds(&entities.iter().map(|x| x.mesh.bounds().transform(&glm::inverse(&x.inverse_transform))));
+    pub fn create(entities: Vec<SceneEntity>, depth_limit: usize) -> Octree {
+        let bounds = AABB::from_bounds(&entities.iter().map(|x| x.model.bounds().transform(&glm::inverse(&x.inverse_transform))));
 
         let root = Octant {
             entities: (0..entities.len()).map(|x| EntityId { id: x }).collect(),
@@ -69,7 +69,7 @@ impl<'a> Octree<'a> {
         };
 
         let mut tree = Octree {
-            entities: entities.into_iter().map(|x| x).collect(),
+            entities,
             octants: vec![root],
         };
 
@@ -95,7 +95,7 @@ impl<'a> Octree<'a> {
                     let mut child_entities = Vec::new();
                     for x in &self.octants[current.id].entities {
                         let entity: &SceneEntity = &self.entities[x.id];
-                        if entity.mesh.bounds().transform(&glm::inverse(&entity.inverse_transform)).intersects_bounds(&child_bounds) {
+                        if entity.model.bounds().transform(&glm::inverse(&entity.inverse_transform)).intersects_bounds(&child_bounds) {
                             child_entities.push(x.clone());
                         }
                     }

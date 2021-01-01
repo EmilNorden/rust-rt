@@ -80,11 +80,12 @@ impl FrameProcessor<'_> {
         let frames_per_second: f64 = 60.0;
         let current_timestamp = self.current_frame as f64 / frames_per_second;
 
-        let mut entities = HashMap::new();
+        // let mut entities = HashMap::new();
 
         let entity_models = &mut self.entity_models;
         let model_store = &mut self.model_store;
-        while self.current_keyframe_index < self.key_frames.len() - 1 && self.key_frames[self.current_keyframe_index + 1].timestamp() < current_timestamp {
+        // Spola fram current keyframe
+        /*while self.current_keyframe_index < self.key_frames.len() - 1 && self.key_frames[self.current_keyframe_index + 1].timestamp() < current_timestamp {
             self.current_keyframe_index = self.current_keyframe_index + 1;
 
             for update in self.key_frames[self.current_keyframe_index].updates() {
@@ -95,6 +96,15 @@ impl FrameProcessor<'_> {
                 let model_path = entity_models.get(&update.entity_name).expect("No model for entity!");
                 let model = model_store.load(&update.entity_name, model_path);
                 entities.entry(update.entity_name.clone()).or_insert(SceneEntity::new(model));
+            }
+        }*/
+
+        while self.current_keyframe_index < self.key_frames.len() - 1 &&
+            self.key_frames[self.current_keyframe_index + 1].timestamp() < current_timestamp {
+
+            self.current_keyframe_index = self.current_keyframe_index + 1;
+            for x in self.key_frames[self.current_keyframe_index + 1].updates() {
+                // entities.entry/
             }
         }
 
@@ -135,7 +145,7 @@ När vi påträffar en property-sättning:
          */
     }
 
-    fn get_entity_model(&mut self, update: &KeyFrameUpdate) -> &Model {
+    /*fn get_entity_model(&mut self, update: &KeyFrameUpdate) -> &Model {
         let model_name = update.model_name.as_ref()
             .expect(&*format!("First occurrence of entity '{}' must reference a model", update.entity_name));
 
@@ -143,5 +153,5 @@ När vi påträffar en property-sättning:
             .expect(&*format!("Entity '{}' references model '{}' which is not defined", update.entity_name, model_name));
 
         self.model_store.load(model_name, model_path)
-    }
+    }*/
 }

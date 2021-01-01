@@ -3,12 +3,13 @@ use crate::core::geom::AABB;
 use crate::content::octree_mesh::OctreeMesh;
 use crate::content::model::Model;
 use num_traits::One;
+use std::rc::Rc;
 
 mod naive_scene;
 pub mod octree_scene;
 
-pub struct SceneEntity<'a> {
-    pub mesh: &'a Model,
+pub struct SceneEntity{
+    pub model: Rc<Model>,
     pub inverse_transform: glm::Mat4,
     pub bounds: AABB,
     position: glm::Vec3,
@@ -16,16 +17,16 @@ pub struct SceneEntity<'a> {
     scale: glm::Vec3,
 }
 
-impl<'a> SceneEntity<'a> {
-    pub fn new(mesh: &'a Model) -> SceneEntity<'a> {
+impl SceneEntity {
+    pub fn new(model: Rc<Model>) -> Self {
         // let inversed_world_transform = glm::inverse(&world_transform);
         // let transformed_bounds = mesh.bounds().transform(&world_transform);
-
+        let bounds = model.bounds().clone();
 
         SceneEntity {
-            mesh,
+            model,
             inverse_transform:  glm::Matrix4::<f32>::one(),
-            bounds: mesh.bounds.clone(), // TODO: FIX THIS LATER,
+            bounds, // TODO: FIX THIS LATER,
             position: glm::Vec3::new(0.0, 0.0, 0.0),
             rotation: glm::Vec3::new(0.0, 0.0, 0.0),
             scale: glm::Vec3::new(1.0, 1.0, 1.0),
@@ -55,7 +56,7 @@ impl<'a> SceneEntity<'a> {
     }
 }
 
-pub trait Scene<'a> {
+pub trait Scene {
     fn trace(&self, ray: &crate::core::Ray) -> Option<Intersection>;
-    fn add(&mut self, entity: SceneEntity<'a>);
+    fn add(&mut self, entity: SceneEntity);
 }
