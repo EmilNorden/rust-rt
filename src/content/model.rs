@@ -2,20 +2,48 @@ use crate::content::octree_mesh::OctreeMesh;
 use crate::content::material::Material;
 use crate::core::geom::AABB;
 use crate::core::{Intersection, Ray};
+use std::rc::Rc;
+use std::collections::HashMap;
 
-/*pub struct Mesh {
-    pub coordinates: Vec<glm::Vector3<f32>>,
-    pub texcoords: Vec<f32>,
-    pub normals: Vec<f32>,
-    pub indices: Vec<(u32, u32, u32)>,
-    pub bounds: AABB,
-    pub material_id: u16,
-}*/
 
 pub struct Model {
     pub meshes: Vec<OctreeMesh>,
     pub materials: Vec<Material>,
     pub bounds: AABB,
+}
+
+pub struct ModelInstance {
+    model: Rc<Model>,
+    material_overrides: HashMap<String, Material>,
+}
+
+impl ModelInstance {
+    pub fn new(model: Rc<Model>) -> Self {
+        ModelInstance {
+            model,
+            material_overrides: HashMap::new(),
+        }
+    }
+
+    pub fn bounds(&self) -> &AABB {
+        self.model.bounds()
+    }
+
+    pub fn intersects(&self, ray: &Ray) -> Option<Intersection> {
+        if let Some(mut intersection) = self.model.intersects(ray) {
+            if let Some(material) = self.material_overrides.get(intersection.mesh.name()) {
+                intersection.material = Some(material);
+            }
+
+            return Some(intersection);
+        }
+
+        None
+    }
+
+    pub fn material_overrides(&mut self) -> &mut HashMap<String, Material> {
+        &mut self.material_overrides
+    }
 }
 
 impl Model {

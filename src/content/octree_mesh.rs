@@ -13,27 +13,33 @@ pub struct OctreeMesh {
     texcoords: Vec<glm::Vector2<f32>>,
     normals: Vec<glm::Vector3<f32>>,
     material_index: usize,
+    name: String,
 }
 
 impl OctreeMesh {
-    pub fn new(coordinates: Vec<glm::Vector3<f32>>, texcoords: Vec<glm::Vector2<f32>>, normals: Vec<glm::Vector3<f32>>, indices: Vec<(u32, u32, u32)>, material_index: usize) -> OctreeMesh {
+    pub fn new(name: String, coordinates: Vec<glm::Vector3<f32>>, texcoords: Vec<glm::Vector2<f32>>, normals: Vec<glm::Vector3<f32>>, indices: Vec<(u32, u32, u32)>, material_index: usize) -> OctreeMesh {
         let mut octree = OctreeMesh {
             octants: vec![
                 OctreeMeshOctant {
                     bounds: AABB::from_vector3(&coordinates),
                     children: Vec::new(),
                     indices,
-                }
+                },
             ],
             coordinates,
             texcoords,
             normals,
             material_index,
+            name,
         };
 
         octree.split_octant(0, 5);
 
         octree
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
     }
 
     pub fn calculate_texcoords(&self, indices: &(u32, u32, u32), u: f32, v: f32) -> glm::Vector2<f32> {

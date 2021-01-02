@@ -2,6 +2,7 @@ use crate::content::model::{Model};
 use crate::content::octree_mesh::OctreeMesh;
 use crate::content::material::{Texture, Material};
 use std::path::Path;
+use std::collections::HashMap;
 
 pub struct ModelLoader {}
 
@@ -70,6 +71,10 @@ fn tuples2<I: Iterator>(iterator: I) -> Tuples2<I> {
     Tuples2 { original: iterator }
 }
 
+pub struct LoadOptions {
+    pub material_replacements: HashMap<String, Material>
+}
+
 impl ModelLoader
 {
     pub fn load(&self, path: &str) -> Result<Model, &str> {
@@ -80,11 +85,11 @@ impl ModelLoader
 
         let model_root = Path::new(path).parent().unwrap();
 
-        let materials = materials.into_iter().map(|x| {
+        let mut materials: Vec<Material> = materials.into_iter().map(|x| {
             let texture_relative_path = Path::new(x.diffuse_texture.as_str());
             let diffuse = Texture::from_file(model_root.join(texture_relative_path).to_str().unwrap());
 
-            Material::new(diffuse)
+            Material::new(Some(diffuse), glm::vec3(0.0, 0.0, 0.0))
         }).collect();
 
         let meshes = models.into_iter().map(|x|
@@ -103,10 +108,13 @@ impl ModelLoader
                     .collect();
 
                 // TODO: Replace unwrap() with pattern matching
-                OctreeMesh::new(coordinates, texcoords, normals, indices, x.mesh.material_id.unwrap())
+                OctreeMesh::new(x.name, coordinates, texcoords, normals, indices, x.mesh.material_id.unwrap())
             }).collect();
 
         let result = Model::new(meshes, materials);
+
+        println!("Loaded model {}", path);
+        println!("Bounds: {}", result.bounds);
 
         //let split = LinearMeshSplit {};
         Ok(result)

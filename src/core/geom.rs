@@ -1,9 +1,17 @@
 use super::*;
+use std::fmt::Display;
+use serde::export::Formatter;
 
 #[derive(Clone)]
 pub struct AABB {
     pub min: glm::Vector3<f32>,
     pub max: glm::Vector3<f32>,
+}
+
+impl Display for AABB {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{},{},{}] - [{},{},{}]", self.min.x, self.min.y, self.min.z, self.max.x, self.max.y, self.max.z)
+    }
 }
 
 impl AABB {

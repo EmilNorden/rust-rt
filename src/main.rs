@@ -15,7 +15,7 @@ use sdl2::keyboard::Keycode;
 use crate::texture::Texture;
 use crate::scene::SceneEntity;
 use num_traits::identities::One;
-use crate::content::model_loader::{ModelLoader};
+use crate::content::model_loader::{ModelLoader, LoadOptions};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, BufReader};
@@ -25,6 +25,8 @@ use crate::render_configuration::{RenderConfiguration, ConfigurationParser};
 use crate::content::store::ModelStore;
 use crate::frame_processor::FrameProcessor;
 use crate::keyframe_interpolator::KeyFrameInterpolator;
+use std::f32::consts::PI;
+use crate::content::material::Material;
 
 mod content;
 mod renderer;
@@ -44,13 +46,34 @@ fn main() {
     // let keyframe = &b.keyframes()[0];
     // let updates = &keyframe.updates()[0];
 
+    let emissive = Material::new(None, glm::vec3(1.0, 0.0, 0.0));
 
-    let _foo = store.load("apricot", "/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj");
-    let identity = glm::Matrix4::<f32>::one();
+
+    let mut apricot1 = SceneEntity::new(
+        store.load("apricot", "/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj")
+    );
+    let mut apricot2 = SceneEntity::new(
+        store.load("apricot", "/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj")
+    );
+
+    let mut light_model = store.load("box", "/Users/emil/code/rust-rt/assets/models/crate/crate1.obj");
+    light_model.material_overrides().insert("crate1".to_string(), emissive);
+    let mut light = SceneEntity::new(
+        light_model
+    );
+
+    apricot1.set_position(glm::vec3(-5.0, 0.0, 0.0));
+    apricot2.set_position(glm::vec3(5.0, 0.0, 0.0));
+    apricot2.set_rotation(glm::vec3(0.0, PI, 0.0));
+    apricot2.set_scale(glm::vec3(0.5, 0.5, 0.5));
+
+    light.set_position(glm::vec3(0.0, 5.0, 0.0));
+    light.set_scale(glm::vec3(0.01, 0.01, 0.01));
 
     let entities = vec![
-        SceneEntity::new(_foo),
+        apricot1, apricot2, light
     ];
+
     let scene2 = scene::octree_scene::Octree::create(entities, 4);
 
     let sdl = sdl2::init().unwrap();

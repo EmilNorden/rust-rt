@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use crate::content::model::Model;
-use crate::content::model_loader::ModelLoader;
+use crate::content::model::{Model, ModelInstance};
+use crate::content::model_loader::{ModelLoader, LoadOptions};
 use std::rc::Rc;
 
 pub struct ModelStore {
@@ -16,11 +16,11 @@ impl ModelStore {
         }
     }
 
-    pub fn load(&mut self, name: &str, path: &str) -> Rc<Model> {
+    pub fn load(&mut self, name: &str, path: &str) -> ModelInstance {
         let source = &mut self.source;
 
-        self.store.entry(name.to_string()).or_insert_with(||{
+        ModelInstance::new(self.store.entry(name.to_string()).or_insert_with(||{
             Rc::new(source.load(path).unwrap())
-        }).clone()
+        }).clone())
     }
 }
