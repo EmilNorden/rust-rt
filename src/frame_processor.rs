@@ -1,4 +1,4 @@
-use crate::render_configuration::{RenderConfiguration, KeyFrame, KeyFrameUpdate};
+/*use crate::render_configuration::{RenderConfiguration, KeyFrame, KeyFrameUpdate};
 use crate::content::model::Model;
 use crate::content::store::ModelStore;
 use image::Frame;
@@ -154,4 +154,4 @@ När vi påträffar en property-sättning:
 
         self.model_store.load(model_name, model_path)
     }*/
-}
+}*/

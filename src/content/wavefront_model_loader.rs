@@ -3,8 +3,9 @@ use crate::content::octree_mesh::OctreeMesh;
 use crate::content::material::{Texture, Material};
 use std::path::Path;
 use std::collections::HashMap;
+use crate::content::ModelLoader;
 
-pub struct ModelLoader {}
+pub struct WaveFrontObjectLoader {}
 
 
 struct Tuples3<I> {
@@ -71,13 +72,9 @@ fn tuples2<I: Iterator>(iterator: I) -> Tuples2<I> {
     Tuples2 { original: iterator }
 }
 
-pub struct LoadOptions {
-    pub material_replacements: HashMap<String, Material>
-}
-
-impl ModelLoader
+impl ModelLoader for WaveFrontObjectLoader
 {
-    pub fn load(&self, path: &str) -> Result<Model, &str> {
+    fn load(&self, path: &str) -> Result<Model, &str> {
         let (models, materials) = tobj::load_obj(path).unwrap();
 
         println!("# of models: {}", models.len());

@@ -1,15 +1,16 @@
 use std::collections::HashMap;
 use crate::content::model::{Model, ModelInstance};
-use crate::content::model_loader::{ModelLoader, LoadOptions};
+use crate::content::wavefront_model_loader::{WaveFrontObjectLoader};
 use std::rc::Rc;
+use crate::content::ModelLoader;
 
 pub struct ModelStore {
     store: HashMap<String, Rc<Model>>,
-    source: ModelLoader, // TODO: Create trait?
+    source: Box<dyn ModelLoader>,
 }
 
 impl ModelStore {
-    pub fn new(source: ModelLoader) -> ModelStore {
+    pub fn new(source: Box<dyn ModelLoader>) -> ModelStore {
         ModelStore {
             store: HashMap::new(),
             source,

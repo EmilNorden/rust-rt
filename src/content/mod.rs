@@ -1,11 +1,19 @@
 extern crate assimp;
 
+use crate::content::model::Model;
+
 pub mod model;
-pub mod model_loader;
+pub mod wavefront_model_loader;
 pub mod mesh;
 pub mod octree_mesh;
 pub mod material;
 pub mod store;
+pub mod assimp_model_loader;
+
+
+pub trait ModelLoader {
+    fn load(&self, path: &str) -> Result<Model, &str>;
+}
 
 #[allow(dead_code)]
 pub fn load_assimp(_path: &str) -> Result<i32, &str> {
@@ -45,51 +53,4 @@ pub fn load_assimp(_path: &str) -> Result<i32, &str> {
         meshes.push(m);
     }*/
     Err("12")
-}
-
-#[allow(dead_code)]
-fn setup_importer(importer: &mut assimp::import::Importer) {
-    importer.calc_tangent_space(|v| {
-        v.enable = true;
-    });
-
-    importer.triangulate(true);
-
-    importer.improve_cache_locality(|v| {
-        v.enable = true;
-    });
-
-    importer.remove_redudant_materials(|v| {
-        v.enable = true;
-    });
-
-    importer.optimize_meshes(true);
-    importer.optimize_graph(|v| {
-        v.enable = true;
-    });
-
-    importer.fix_infacing_normals(true);
-    importer.find_invalid_data(|v| {
-        v.enable = true;
-    });
-
-    // Should I remove this? Do I really want to use index buffer?
-    importer.join_identical_vertices(true);
-
-    importer.find_instances(true);
-
-    importer.gen_uv_coords(true);
-    importer.sort_by_primitive_type(|v| {
-        v.enable = true;
-    });
-
-    importer.generate_normals(|v| {
-        v.enable = true;
-        v.smooth = true;
-    });
-
-    // Use or not?
-    importer.split_large_meshes(|v| {
-        v.enable = true;
-    });
 }

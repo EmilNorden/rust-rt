@@ -15,7 +15,7 @@ use sdl2::keyboard::Keycode;
 use crate::texture::Texture;
 use crate::scene::SceneEntity;
 use num_traits::identities::One;
-use crate::content::model_loader::{ModelLoader, LoadOptions};
+use crate::content::wavefront_model_loader::{WaveFrontObjectLoader};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, BufReader};
@@ -23,7 +23,6 @@ use std::cell::RefCell;
 use std::sync::Arc;
 use crate::render_configuration::{RenderConfiguration, ConfigurationParser};
 use crate::content::store::ModelStore;
-use crate::frame_processor::FrameProcessor;
 use crate::keyframe_interpolator::KeyFrameInterpolator;
 use std::f32::consts::PI;
 use crate::content::material::Material;
@@ -38,8 +37,8 @@ mod keyframe_interpolator;
 
 
 fn main() {
-    let loader = ModelLoader{};
-    let mut store = ModelStore::new(loader);
+    let loader = WaveFrontObjectLoader {};
+    let mut store = ModelStore::new(Box::new(loader));
     // let args = std::env::args();
     // Input path should be taken from args
     let mut config = ConfigurationParser{}.parse("/Users/emil/code/rust-rt/src/test.json");
@@ -87,7 +86,7 @@ fn main() {
     camera.set_resolution(glm::Vector2::new(window.width(), window.height()));
 
 
-    let mut pixels = vec![0u8; (window.width() * window.height() * 3) as usize]; // Vec::<u8>::with_capacity((window.width() * window.height() * 3) as usize);
+    let mut pixels = vec![0u8; (window.width() * window.height() * 3) as usize];
 
     let texture = Texture::from_pixels(window.width(), window.height(), &pixels).unwrap();
     texture.bind();
@@ -129,8 +128,6 @@ fn main() {
         }
 
         window.clear();
-
-
         texture.set_pixels(window.width(), window.height(), &pixels);
         texture.bind();
         window.render();
