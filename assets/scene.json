@@ -1,0 +1,60 @@
+{
+  "scene": {
+    "duration": 5.0,
+    "frames_per_second": 30,
+    "shutter_speed": {
+      "numerator": 1.0,
+      "denominator": 60.0
+    }
+  },
+  "materials": [
+    {
+      "name": "red",
+      "diffuse": [1.0, 0.0, 0.0]
+    }
+  ],
+  "entities": [
+    {
+      "sphere": {
+        "id": "sphere1"
+      }
+    }
+  ],
+  "models": [
+    {
+      "name": "foo",
+      "path": "bar"
+    }
+  ],
+  "keyframes": [
+    {
+      "timestamp": 0.0,
+      "updates": [
+        {
+          "id": "sphere1",
+          "radius": 1.0,
+          "position": [1.0, 0.0, 0.0],
+          "material": "red"
+        }
+      ]
+    },
+    {
+      "timestamp": 2.0,
+      "updates": [
+        {
+          "id": "sphere1",
+          "radius": 2.0
+        }
+      ]
+    },
+    {
+      "timestamp": 4.0,
+      "updates": [
+        {
+          "id": "sphere1",
+          "position": [1.0, 0.0, -5.0]
+        }
+      ]
+    }
+  ]
+}

@@ -29,17 +29,17 @@ impl ModelInstance {
         self.model.bounds()
     }
 
-    pub fn intersects(&self, ray: &Ray) -> Option<Intersection> {
+    /*pub fn intersects(&self, ray: &Ray) -> Option<Box<dyn Intersection + '_>> {
         if let Some(mut intersection) = self.model.intersects(ray) {
             if let Some(material) = self.material_overrides.get(intersection.mesh.name()) {
                 intersection.material = Some(material);
             }
 
-            return Some(intersection);
+            return Some(Box::new(intersection));
         }
 
         None
-    }
+    }*/
 
     pub fn material_overrides(&mut self) -> &mut HashMap<String, Material> {
         &mut self.material_overrides
@@ -63,8 +63,8 @@ impl Model {
         &self.bounds
     }
 
-    pub fn intersects(&self, ray: &Ray) -> Option<Intersection> {
-        let mut result: Option<Intersection> = None;
+    /*pub fn intersects(&self, ray: &Ray) -> Option<ModelIntersection> {
+        let mut result: Option<ModelIntersection> = None;
         let mut best_distance: f32 = std::f32::MAX;
         for mesh in &self.meshes {
             if let Some(mut mesh_result) = mesh.intersects(ray) {
@@ -77,7 +77,7 @@ impl Model {
 
         }
         result
-    }
+    }*/
 }
 
 /*impl Mesh {

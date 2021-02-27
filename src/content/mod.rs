@@ -8,8 +8,6 @@ pub mod mesh;
 pub mod octree_mesh;
 pub mod material;
 pub mod store;
-pub mod assimp_model_loader;
-
 
 pub trait ModelLoader {
     fn load(&self, path: &str) -> Result<Model, &str>;

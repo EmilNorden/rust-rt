@@ -3,7 +3,16 @@ use crate::content::material::Material;
 
 pub mod geom;
 
-pub struct Intersection<'a> {
+pub trait Intersection {
+    fn coordinate(&self) -> glm::Vec3;
+    fn object_space_normal(&self) -> glm::Vec4;
+    fn world_space_normal(&self) -> glm::Vec3;
+    fn texture_coordinates(&self) -> glm::Vec2;
+    fn material(&self) -> &Material;
+    fn distance(&self) -> f32;
+}
+
+/*pub struct Intersection<'a> {
     pub mesh: &'a OctreeMesh,
     pub material: Option<&'a Material>,
     pub u: f32,
@@ -11,7 +20,7 @@ pub struct Intersection<'a> {
     pub indices: (u32, u32, u32),
     pub distance: f32,
     pub material_index: usize,
-}
+}*/
 
 pub struct Ray {
     pub origin: glm::Vector3<f32>,

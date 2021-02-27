@@ -1,16 +1,31 @@
-use crate::core::Intersection;
+use crate::core::{Intersection, Ray};
 use crate::core::geom::AABB;
 use crate::content::octree_mesh::OctreeMesh;
 use crate::content::model::{Model, ModelInstance};
 use num_traits::One;
 use std::rc::Rc;
 use glm::ext::rotate;
+use crate::content::material::Material;
+use rand::rngs::StdRng;
 
-mod naive_scene;
 pub mod octree_scene;
+pub mod sphere_entity;
+pub mod mesh_entity;
 
+pub trait Intersectable {
+    fn intersect<'a >(&'a self, world_ray: &Ray) -> Option<Box<dyn Intersection + 'a>>;
+    fn bounds(&self) -> &AABB;
+}
+
+pub trait Renderable {
+    fn is_emissive(&self) -> bool;
+    fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_>;
+}
+
+pub trait SceneEntity : Intersectable + Renderable {}
+/*
 pub struct SceneEntity {
-    pub model: ModelInstance,
+    pub model_instance: ModelInstance,
     pub inverse_transform: glm::Mat4,
     pub bounds: AABB,
     position: glm::Vec3,
@@ -25,7 +40,7 @@ impl SceneEntity {
         let bounds = model.bounds().clone();
 
         SceneEntity {
-            model,
+            model_instance: model,
             inverse_transform: glm::Matrix4::<f32>::one(),
             bounds, // TODO: FIX THIS LATER,
             position: glm::Vec3::new(0.0, 0.0, 0.0),
@@ -68,12 +83,21 @@ impl SceneEntity {
                                         self.rotation.z,
                                         glm::vec3(0.0, 0.0, 1.0));
 
-
+        self.bounds = self.model_instance.bounds().transform(&rotation);
         self.inverse_transform = glm::inverse(&rotation);
     }
-}
 
+    pub fn get_random_emissive_surface(&self, rng: &mut StdRng) -> u32 {
+        /*for mesh in self.model_instance.model.meshes {
+            // if self.model_instance.model.materials[mesh.material_index]
+        }*/
+
+        0
+    }
+}
+*/
 pub trait Scene {
-    fn trace(&self, ray: &crate::core::Ray) -> Option<Intersection>;
-    fn add(&mut self, entity: SceneEntity);
+    fn find_intersection(&self, ray: &crate::core::Ray) -> Option<Box<dyn Intersection + '_>>;
+    fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_>;
+    fn get_emissive_entities(&self) -> Vec<&Box<dyn SceneEntity>>;
 }

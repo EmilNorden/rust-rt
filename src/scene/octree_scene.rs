@@ -1,6 +1,10 @@
-use crate::scene::SceneEntity;
+
 use crate::core::geom::{AABB, ray_aabb_intersect};
 use crate::core::{Intersection, Ray};
+use crate::scene::{Scene, SceneEntity};
+use rand::rngs::StdRng;
+use rand::Rng;
+
 extern crate test;
 
 #[derive(Clone)]
@@ -10,7 +14,7 @@ struct OctantId { pub id: usize }
 struct EntityId { pub id: usize }
 
 pub struct Octree {
-    entities: Vec<SceneEntity>,
+    entities: Vec<Box<dyn SceneEntity>>,
     octants: Vec<Octant>,
 }
 
@@ -20,9 +24,30 @@ struct Octant {
     bounds: AABB,
 }
 
+impl Scene for Octree {
+    fn find_intersection(&self, ray: &Ray) -> Option<Box<dyn Intersection + '_>> {
+        self.trace_octant(ray, &OctantId { id: 0 })
+    }
+
+    fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_> {
+        let emissive_entities: Vec<&Box<dyn SceneEntity>> = self.entities
+            .iter()
+            .filter(|x| x.is_emissive())
+            .collect();
+
+        let random_entity = emissive_entities[rng.gen_range(0..emissive_entities.len())];
+
+        random_entity.get_random_emissive_surface(rng)
+    }
+
+    fn get_emissive_entities(&self) -> Vec<&Box<dyn SceneEntity>> {
+        self.entities.iter().filter(|x| x.is_emissive()).collect()
+    }
+}
+
 impl Octree {
-    fn trace_octant(&self, ray: &Ray, octant_id: &OctantId) -> Option<Intersection> {
-        let mut result: Option<Intersection> = None;
+    fn trace_octant(&self, ray: &Ray, octant_id: &OctantId) -> Option<Box<dyn Intersection + '_>> {
+        let mut result: Option<Box<dyn Intersection>> = None;
         let octant = &self.octants[octant_id.id];
         if !ray_aabb_intersect(ray, &octant.bounds) {
             return None;
@@ -32,10 +57,12 @@ impl Octree {
 
             let mut best_distance = std::f32::MAX;
             for x in &octant.entities {
-                let transformed_ray = ray.transform(&self.entities[x.id].inverse_transform);
-                if let Some(intersection) = self.entities[x.id].model.intersects(&transformed_ray) {
-                    if intersection.distance < best_distance {
-                        best_distance = intersection.distance;
+                // let transformed_ray = ray.transform(&self.entities[x.id].inverse_transform);
+                // let foo = &self.entities[x.id];
+                // let bar = foo.intersect(ray);
+                if let Some(intersection) = self.entities[x.id].intersect(ray) {
+                    if intersection.distance() < best_distance {
+                        best_distance = intersection.distance();
                         result = Some(intersection);
                     }
                 }
@@ -45,8 +72,8 @@ impl Octree {
         let mut best_distance = std::f32::MAX;
         for octant_id in &octant.children {
             if let Some(intersection) = self.trace_octant(ray, &octant_id) {
-                if intersection.distance < best_distance {
-                    best_distance = intersection.distance;
+                if intersection.distance() < best_distance {
+                    best_distance = intersection.distance();
                     result = Some(intersection);
                 }
             }
@@ -55,12 +82,13 @@ impl Octree {
         result
     }
 
-    pub fn trace(&self, ray: &Ray) -> Option<Intersection> {
+    pub fn trace(&self, ray: &Ray) -> Option<Box<dyn Intersection + '_>> {
         self.trace_octant(ray, &OctantId { id: 0 })
     }
 
-    pub fn create(entities: Vec<SceneEntity>, depth_limit: usize) -> Octree {
-        let bounds = AABB::from_bounds(&entities.iter().map(|x| x.model.bounds().transform(&glm::inverse(&x.inverse_transform))));
+    pub fn create(entities: Vec<Box<dyn SceneEntity>>, depth_limit: usize) -> Octree {
+        // let bounds = AABB::from_bounds(&entities.iter().map(|x| x.model.bounds().transform(&glm::inverse(&x.inverse_transform))));
+        let bounds = AABB::from_bounds(&entities.iter().map(|x| x.bounds().clone()));
 
         let root = Octant {
             entities: (0..entities.len()).map(|x| EntityId { id: x }).collect(),
@@ -72,6 +100,8 @@ impl Octree {
             entities,
             octants: vec![root],
         };
+
+
 
         tree.split_octant(OctantId { id: 0 }, depth_limit);
 
@@ -94,8 +124,9 @@ impl Octree {
 
                     let mut child_entities = Vec::new();
                     for x in &self.octants[current.id].entities {
-                        let entity: &SceneEntity = &self.entities[x.id];
-                        if entity.model.bounds().transform(&glm::inverse(&entity.inverse_transform)).intersects_bounds(&child_bounds) {
+                        let entity= &self.entities[x.id];
+                        // if entity.model.bounds().transform(&glm::inverse(&entity.inverse_transform)).intersects_bounds(&child_bounds) {
+                        if entity.bounds().intersects_bounds(&child_bounds) {
                             child_entities.push(x.clone());
                         }
                     }

@@ -1,5 +1,6 @@
 use crate::core::geom::{AABB, ray_aabb_intersect, ray_triangle_intersect};
 use crate::core::{Ray, Intersection};
+use crate::scene::mesh_entity::MeshIntersection;
 
 struct OctreeMeshOctant {
     indices: Vec<(u32, u32, u32)>,
@@ -42,6 +43,8 @@ impl OctreeMesh {
         &self.name
     }
 
+    pub fn material_index(&self) -> usize { self.material_index }
+
     pub fn calculate_texcoords(&self, indices: &(u32, u32, u32), u: f32, v: f32) -> glm::Vector2<f32> {
         let w = 1.0 - u - v;
 
@@ -65,11 +68,11 @@ impl OctreeMesh {
         &self.octants[0].bounds
     }
 
-    pub fn intersects(&self, ray: &Ray) -> Option<Intersection> {
+    pub fn intersects(&self, ray: &Ray) -> Option<MeshIntersection> {
        self.intersects_octant(ray,0)
     }
 
-    fn intersects_octant(&self, ray: &Ray, octant_index: usize) -> Option<Intersection> {
+    fn intersects_octant(&self, ray: &Ray, octant_index: usize) -> Option<MeshIntersection> {
 
         if !ray_aabb_intersect(ray, &self.octants[octant_index].bounds) {
             return None;
@@ -98,22 +101,22 @@ impl OctreeMesh {
             }
 
             if found {
-                return Some(Intersection {
+                return Some(MeshIntersection {
                     mesh: &self,
+                    material: None,
                     u: result_u,
                     v: result_v,
                     indices: result_indices,
                     distance: closest_distance,
-                    material_index: self.material_index,
-                    material: None,
-                });
+                    material_index: self.material_index
+                })
             }
 
             return None;
         }
         else {
             let mut best_distance = std::f32::MAX;
-            let mut result: Option<Intersection> = None;
+            let mut result: Option<MeshIntersection> = None;
             for child_index in &self.octants[octant_index].children {
                 if let Some(intersection) = self.intersects_octant(ray, *child_index) {
                     if intersection.distance < best_distance {
