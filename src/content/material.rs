@@ -53,7 +53,7 @@ impl Material {
                 glm::Vector3::new(r / 255.0, g / 255.0, b / 255.0)
             },
             None => {
-                self.emission
+                self.diffuse
             }
         }
     }

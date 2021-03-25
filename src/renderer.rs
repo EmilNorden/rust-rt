@@ -76,30 +76,31 @@ pub fn render(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u32>
 
             let color = match scene.find_intersection(&r) {
                 None => {
-                    glm::vec3(0.0, 0.0, 0.0)
+                    glm::vec3(1.0, 0.0, 1.0)
                 }
                 Some(x) => {
                     // Collect incoming light
                     // - own emission
                     // - bidirectional
                     let mut diffuse = x.material().sample_diffuse(&x.texture_coordinates());
-                    x.material().sample_diffuse(&x.texture_coordinates());
                     let mut direct_light = glm::vec3(0.0, 0.0, 0.0);
                     for light in scene.get_emissive_entities() {
 
                         let emissive_surface = light.get_random_emissive_surface(rng);
                         //TODO: Do I need to check that emissive_surface and x is not the same surface?
+
                         let shadow_ray = Ray {
                             origin: x.coordinate(),
                             direction: glm::normalize(emissive_surface.coordinate() - x.coordinate())
                         };
 
                         if let Some(light_intersection) = scene.find_intersection(&shadow_ray) {
-                            direct_light = direct_light + *emissive_surface.material().emission() * diffuse * glm::dot(x.world_space_normal(), shadow_ray.direction);
+                            direct_light = direct_light + *light_intersection.material().emission();
+                            // direct_light = direct_light + *emissive_surface.material().emission() * diffuse * glm::dot(x.world_space_normal(), shadow_ray.direction);
                         }
                     }
-
-                    *x.material().emission() + direct_light
+                    x.world_space_normal()
+                    // *x.material().emission() + (diffuse * direct_light)
                 }
             };
 

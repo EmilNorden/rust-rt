@@ -93,18 +93,18 @@ fn main() {
     light.set_scale(glm::vec3(0.01, 0.01, 0.01));*/
 
     let entities: Vec<Box<dyn SceneEntity>> = vec![
-        Box::new(SphereEntity::new(
+        /*Box::new(SphereEntity::new(
             glm::vec3(0.0, 0.0, 0.0),
             glm::vec3(0.0, 0.0, 0.0),
             glm::vec3(1.0, 1.0, 1.0),
             1.0,
-            Material::new(None, glm::vec3(0.0, 0.0, 0.0), glm::vec3(1.0, 1.0, 1.0))
-        )),
+            Material::new(None, glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0, 1.0, 1.0))
+        )),*/
         Box::new(SphereEntity::new(
-            glm::vec3(0.0, -11.0, 0.0),
+            glm::vec3(0.0, -2.0, 0.0),
             glm::vec3(0.0, 0.0, 0.0),
-            glm::vec3(10.0, 1.0, 10.0),
-            10.0,
+            glm::vec3(2.0, 2.0, 2.0),
+            1.0,
             Material::new(None, glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0))
         )),
     ];
