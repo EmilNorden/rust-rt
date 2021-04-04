@@ -94,19 +94,36 @@ fn main() {
 
     let entities: Vec<Box<dyn SceneEntity>> = vec![
         Box::new(SphereEntity::new(
+            0,
             glm::vec3(0.0, 0.0, 0.0),
             glm::vec3(0.0, 0.0, 0.0),
             glm::vec3(1.0, 1.0, 1.0),
             1.0,
-            Material::new(None, glm::vec3(0.0, 0.0, 0.0), glm::vec3(1.0, 1.0, 1.0))
+            Material::new(None, glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.2, 0.2, 0.8))
         )),
         Box::new(SphereEntity::new(
+            1,
+            glm::vec3(4.0, 0.0, 0.0),
+            glm::vec3(0.0, 0.0, 0.0),
+            glm::vec3(1.0, 1.0, 1.0),
+            1.0,
+            Material::new(None, glm::vec3(1.0, 0.5, 0.5), glm::vec3(0.0, 0.0, 0.0))
+        )),
+        Box::new(SphereEntity::new(
+            2,
+            glm::vec3(2.0, 0.1, 0.0),
+            glm::vec3(0.0, 0.0, 0.0),
+            glm::vec3(1.0, 1.0, 1.0),
+            0.3,
+            Material::new(None, glm::vec3(1.0, 0.5, 0.5), glm::vec3(0.0, 0.0, 0.0))
+        )),
+        /*Box::new(SphereEntity::new(
             glm::vec3(0.0, -11.0, 0.0),
             glm::vec3(0.0, 0.0, 0.0),
-            glm::vec3(10.0, 1.0, 10.0),
+            glm::vec3(1.0, 1.0, 1.0),
             10.0,
-            Material::new(None, glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0))
-        )),
+            Material::new(None, glm::vec3(1.0, 0.0, 0.0), glm::vec3(1.0, 0.0, 0.0))
+        )),*/
     ];
 
     let scene2 = scene::octree_scene::Octree::create(entities, 4);
@@ -115,9 +132,9 @@ fn main() {
     let window = window::Window::create(&sdl).unwrap();
 
     let mut camera = Camera::new();
-    camera.set_position(glm::Vector3::new(0.0, 2.5, 15.0));
+    camera.set_position(glm::Vector3::new(0.0, 2.5, -15.0));
     // camera.set_position(glm::Vector3::new(0.0, 300.0, 300.0));
-    camera.set_direction(glm::Vector3::new(0.0, 0.0, -1.0));
+    camera.set_direction(glm::Vector3::new(0.0, 0.0, 1.0));
     // camera.set_direction(glm::Vector3::new(0.0, -1.0, -1.0));
     camera.set_resolution(glm::Vector2::new(window.width(), window.height()));
     let mut rng = rand::rngs::StdRng::seed_from_u64(123);

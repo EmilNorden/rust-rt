@@ -41,14 +41,14 @@ impl ImageBuffer {
     }
 
     #[inline(always)]
-    pub fn set_pixel(&mut self, x: usize, y: usize, color: Color) {
+    pub fn add_pixel(&mut self, x: usize, y: usize, color: Color) {
         debug_assert!(x < self.width);
         debug_assert!(y < self.height);
 
         let pixel_offset = y * self.width * ImageBuffer::BYTES_PER_PIXEL + (x * ImageBuffer::BYTES_PER_PIXEL);
-        self.pixels[pixel_offset] = color.r;
-        self.pixels[pixel_offset + 1] = color.g;
-        self.pixels[pixel_offset + 2] = color.b;
+        self.pixels[pixel_offset] += color.r;
+        self.pixels[pixel_offset + 1] += color.g;
+        self.pixels[pixel_offset + 2] += color.b;
     }
 
     #[inline(always)]
@@ -66,8 +66,7 @@ impl ImageBuffer {
     }
 }
 
-pub fn render(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u32>, rng: &mut StdRng) -> ImageBuffer {
-    let mut image = ImageBuffer::new(resolution.x as usize, resolution.y as usize);
+fn render_sample(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u32>, rng: &mut StdRng, image: &mut ImageBuffer, sample_importance: f32) {
     for y in 0..resolution.y {
         for x in 0..resolution.x {
             let r = camera.cast_ray(x as usize, y as usize);
@@ -83,30 +82,74 @@ pub fn render(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u32>
                     // - own emission
                     // - bidirectional
                     let mut diffuse = x.material().sample_diffuse(&x.texture_coordinates());
-                    x.material().sample_diffuse(&x.texture_coordinates());
                     let mut direct_light = glm::vec3(0.0, 0.0, 0.0);
                     for light in scene.get_emissive_entities() {
 
-                        let emissive_surface = light.get_random_emissive_surface(rng);
+                        if x.entity_id() == 1 {
+                            let ff = 2323;
+                        }
+                        /*let emissive_surface = light.get_random_emissive_surface(rng);
                         //TODO: Do I need to check that emissive_surface and x is not the same surface?
+                        let coord = x.coordinate();
                         let shadow_ray = Ray {
-                            origin: x.coordinate(),
+                            origin: x.coordinate() + (x.world_space_normal() * 0.01),
                             direction: glm::normalize(emissive_surface.coordinate() - x.coordinate())
                         };
 
                         if let Some(light_intersection) = scene.find_intersection(&shadow_ray) {
-                            direct_light = direct_light + *emissive_surface.material().emission() * diffuse * glm::dot(x.world_space_normal(), shadow_ray.direction);
+                            if light_intersection.entity_id() != emissive_surface.entity_id() {
+                                let ffs = light_intersection.coordinate();
+
+                                continue;
+
+                            }
+
+                            if glm::ext::sqlength(light_intersection.coordinate() - emissive_surface.coordinate()) > 0.4 {
+                                continue;
+                            }
+
+                            direct_light = direct_light + *emissive_surface.material().emission() * diffuse; // * glm::dot(x.world_space_normal(), shadow_ray.direction);
+                        }*/
+
+                        let coordinate = x.coordinate();
+                        let norm = x.world_space_normal();
+                        let new_origin = coordinate + (norm * 0.1);
+                        let shadow_ray = Ray {
+                            origin: new_origin,
+                            direction: glm::normalize( light.position() - new_origin)
+                        };
+
+                        if let Some(light_intersection) = scene.find_intersection(&shadow_ray) {
+                            let coo = light_intersection.coordinate();
+                            if coordinate.x < 3.0 && x.entity_id() == 1 && light_intersection.entity_id() == x.entity_id() {
+                                let fsdf = 34;
+                            }
+                            if light_intersection.entity_id() == light.entity_id() {
+                                direct_light = direct_light + *light_intersection.material().emission();
+                            }
+
                         }
                     }
 
-                    *x.material().emission() + direct_light
+                    *x.material().emission() + (diffuse * direct_light)
                 }
             };
 
             //let color = trace_ray(&r, scene, 3);
-            image.set_pixel(x as usize, y as usize, Color::from_vec3(&color))
+            image.add_pixel(x as usize, y as usize, Color::from_vec3(&(color * sample_importance)));
         }
     }
+}
+
+pub fn render(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u32>, rng: &mut StdRng) -> ImageBuffer {
+    let mut image = ImageBuffer::new(resolution.x as usize, resolution.y as usize);
+
+    let nsamples = 1;
+    for sample in 0..nsamples {
+        println!("sample {} of {}", sample+1, nsamples);
+        render_sample(scene, camera, resolution, rng, &mut image, 1.0 / nsamples as f32);
+    }
+
 
     image
 }

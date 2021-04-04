@@ -15,6 +15,8 @@ pub mod mesh_entity;
 pub trait Intersectable {
     fn intersect<'a >(&'a self, world_ray: &Ray) -> Option<Box<dyn Intersection + 'a>>;
     fn bounds(&self) -> &AABB;
+    fn entity_id(&self) -> u32;
+    fn position(&self) -> glm::Vec3;
 }
 
 pub trait Renderable {

@@ -8,6 +8,7 @@ use rand::rngs::StdRng;
 use rand::Rng;
 
 pub struct SphereIntersection<'a> {
+    entity_id: u32,
     material: &'a Material,
     transform: &'a glm::Mat4,
     hit_point: glm::Vec3,
@@ -16,10 +17,13 @@ pub struct SphereIntersection<'a> {
 }
 
 impl Intersection for SphereIntersection<'_> {
-    fn coordinate(&self) -> Vec3 { self.hit_point }
+    fn coordinate(&self) -> Vec3 {
+        let tmp = *self.transform * glm::vec4(self.hit_point.x, self.hit_point.y, self.hit_point.z, 1.0);
+        glm::vec3(tmp.x, tmp.y, tmp.z)
+    }
 
     fn object_space_normal(&self) -> glm::Vec4 {
-        let tmp = glm::normalize(self.hit_point - self.sphere_position);
+        let tmp = glm::normalize(self.hit_point);
         glm::vec4(tmp.x, tmp.y, tmp.z, 0.0)
     }
 
@@ -39,9 +43,26 @@ impl Intersection for SphereIntersection<'_> {
     fn distance(&self) -> f32 {
         self.distance
     }
+
+    fn entity_id(&self) -> u32 {
+        self.entity_id
+    }
+
+    fn is_same_surface(&self, other: Box<dyn Intersection>) -> bool {
+        if self.entity_id() != other.entity_id() {
+            return false;
+        }
+
+        if glm::ext::sqlength(self.coordinate() - other.coordinate()) > 0.1 {
+            return false;
+        }
+
+        true
+    }
 }
 
 pub struct SphereEntity {
+    entity_id: u32,
     position: glm::Vec3,
     rotation: glm::Vec3,
     scale: glm::Vec3,
@@ -53,10 +74,11 @@ pub struct SphereEntity {
 }
 
 impl SphereEntity {
-    pub fn new(position: glm::Vec3, rotation: glm::Vec3, scale: glm::Vec3, radius: f32, material: Material) -> Self {
+    pub fn new(id: u32, position: glm::Vec3, rotation: glm::Vec3, scale: glm::Vec3, radius: f32, material: Material) -> Self {
         let transform = Self::build_transform(&position, &rotation, &scale);
         let inverse_transform = glm::inverse(&transform);
         SphereEntity {
+            entity_id: id,
             position,
             rotation,
             scale,
@@ -67,7 +89,7 @@ impl SphereEntity {
             },
             material,
             transform,
-            inverse_transform
+            inverse_transform,
         }
     }
 
@@ -84,6 +106,12 @@ impl SphereEntity {
         let oc = object_ray.origin - glm::vec3(0.0, 0.0, 0.0);
         let a = glm::dot(object_ray.direction, object_ray.direction);
         let b = 2.0 * glm::dot(oc, object_ray.direction);
+
+        // If sphere is behind ray
+        if b > 0.0 {
+            return None;
+        }
+
         let c = glm::dot(oc, oc) - self.radius * self.radius;
         let discriminant = b * b - 4.0 * a * c;
         if discriminant < 0.0 {
@@ -91,7 +119,11 @@ impl SphereEntity {
         }
 
         let distance = (-b - glm::sqrt(discriminant)) / (2.0 * a);
+        if distance > 0.0 {
+            let fff = 334;
+        }
         Some(Box::new(SphereIntersection {
+            entity_id: self.entity_id,
             material: &self.material,
             transform: &self.transform,
             hit_point: object_ray.origin + (object_ray.direction * distance),
@@ -113,6 +145,7 @@ impl Renderable for SphereEntity {
             - glm::vec3(0.5, 0.5, 0.5)) * self.radius;
 
         Box::new(SphereIntersection {
+            entity_id: self.entity_id,
             material: &self.material,
             transform: &self.transform,
             hit_point: random_point,
@@ -131,4 +164,10 @@ impl Intersectable for SphereEntity {
     fn bounds(&self) -> &AABB {
         &self.bounds
     }
+
+    fn entity_id(&self) -> u32 {
+        self.entity_id
+    }
+
+    fn position(&self) -> glm::Vec3 { self.position }
 }

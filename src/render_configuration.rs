@@ -67,10 +67,10 @@ impl PropertyValue {
         a * (1.0 - factor) + b * factor
     }
 
-    pub fn lerp(&self, other: PropertyValue, factor: f32) -> PropertyValue {
+    pub fn lerp(&self, other: &PropertyValue, factor: f32) -> PropertyValue {
         use PropertyValue::*;
         match (self, other) {
-            (Float(a), Float(b)) => Float(Self::lerp_f32(*a, b, factor)),
+            (Float(a), Float(b)) => Float(Self::lerp_f32(*a, *b, factor)),
             (Vec3(a), Vec3(b)) => Vec3(glm::vec3(Self::lerp_f32(a.x, b.x, factor), Self::lerp_f32(a.y, b.y, factor), Self::lerp_f32(a.z, b.z, factor))),
             (String(a), String(b)) => String(a.clone()),
             _ => panic!("Cannot interpolate values of different types!")

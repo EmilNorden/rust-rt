@@ -10,6 +10,8 @@ pub trait Intersection {
     fn texture_coordinates(&self) -> glm::Vec2;
     fn material(&self) -> &Material;
     fn distance(&self) -> f32;
+    fn entity_id(&self) -> u32;
+    fn is_same_surface(&self, other: Box<dyn Intersection>) -> bool;
 }
 
 /*pub struct Intersection<'a> {

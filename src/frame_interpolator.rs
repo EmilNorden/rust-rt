@@ -56,7 +56,7 @@ impl FrameInterpolator<'_> {
             let mut new_values = HashMap::new();
             for (property_name, property_value) in entity_from_values {
                 let frame_value = match entity_to_values.get(property_name) {
-                    Some(x) => (*x).1.lerp(property_value.clone().1, 1.0),
+                    Some(x) => (*x).1.lerp(&property_value.1, 1.0),
                     None => property_value.clone().1
                 };
 
