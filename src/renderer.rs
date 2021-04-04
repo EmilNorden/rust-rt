@@ -75,7 +75,7 @@ fn render_sample(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u
 
             let color = match scene.find_intersection(&r) {
                 None => {
-                    glm::vec3(0.0, 0.0, 0.0)
+                    glm::vec3(1.0, 0.0, 1.0)
                 }
                 Some(x) => {
                     // Collect incoming light

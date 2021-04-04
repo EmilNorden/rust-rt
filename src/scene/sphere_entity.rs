@@ -77,16 +77,19 @@ impl SphereEntity {
     pub fn new(id: u32, position: glm::Vec3, rotation: glm::Vec3, scale: glm::Vec3, radius: f32, material: Material) -> Self {
         let transform = Self::build_transform(&position, &rotation, &scale);
         let inverse_transform = glm::inverse(&transform);
+        let bounds = AABB {
+            min: position - glm::vec3(radius, radius, radius),
+            max: position + glm::vec3(radius, radius, radius),
+        };
+
+
         SphereEntity {
             entity_id: id,
             position,
             rotation,
             scale,
             radius,
-            bounds: AABB {
-                min: position - glm::vec3(radius, radius, radius),
-                max: position + glm::vec3(radius, radius, radius),
-            },
+            bounds: bounds.transform(&transform),
             material,
             transform,
             inverse_transform,

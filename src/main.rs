@@ -99,7 +99,7 @@ fn main() {
             glm::vec3(0.0, 0.0, 0.0),
             glm::vec3(1.0, 1.0, 1.0),
             1.0,
-            Material::new(None, glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.2, 0.2, 0.8))
+            Material::new(None, glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.8, 0.8, 1.0))
         )),
         Box::new(SphereEntity::new(
             1,
