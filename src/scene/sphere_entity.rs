@@ -73,8 +73,8 @@ pub struct SphereEntity {
 impl SphereEntity {
     pub fn new(id: u32, radius: f32, material: Material, mut transform: Transform) -> Self {
         let bounds = AABB {
-            min: *transform.translation() - glm::vec3(radius, radius, radius),
-            max: *transform.translation() + glm::vec3(radius, radius, radius),
+            min: glm::vec3(-radius, -radius, -radius),
+            max: glm::vec3(radius, radius, radius),
         }.transform(transform.world());
 
 
@@ -145,7 +145,9 @@ impl Renderable for SphereEntity {
 
 impl Intersectable for SphereEntity {
     fn intersect(&self, world_ray: &Ray) -> Option<Box<dyn Intersection + '_>> {
+
         let object_ray = world_ray.transform(&self.transform.inverse_world());
+
         if let Some(object_space_distance) = self.intersect_object_space_ray(&object_ray) {
             let object_space_hit_point = object_ray.origin + (object_ray.direction * object_space_distance);
             let tmp = *self.transform.world() * glm::vec4(object_space_hit_point.x, object_space_hit_point.y, object_space_hit_point.z, 1.0);
@@ -179,9 +181,34 @@ impl Intersectable for SphereEntity {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::content::material_builder::MaterialBuilder;
+    use crate::scene::transform_builder::TransformBuilder;
 
     #[test]
-    fn intersect_object_space_ray_simple() {
-        //let sphere = SphereEntity::new(0, glm::vec3(0.0, 0.0, 0.0), )
+    fn intersect_object_space_ray_simple_intersection() {
+        let sphere = SphereEntity::new(0, 1.0, MaterialBuilder::new().build(), TransformBuilder::new().build());
+
+        let ray = Ray {
+            origin: glm::vec3(0.0, 0.0, 2.0),
+            direction: glm::vec3(0.0, 0.0, -1.0)
+        };
+
+        let result = sphere.intersect_object_space_ray(&ray);
+
+        assert_eq!(result.unwrap(), 1.0);
+    }
+
+    #[test]
+    fn intersect_object_space_ray_should_not_intersect_behind_ray() {
+        let sphere = SphereEntity::new(0, 1.0, MaterialBuilder::new().build(), TransformBuilder::new().build());
+
+        let ray = Ray {
+            origin: glm::vec3(0.0, 0.0, 2.0),
+            direction: glm::vec3(0.0, 0.0, 1.0)
+        };
+
+        let result = sphere.intersect_object_space_ray(&ray);
+
+        assert!(result.is_none())
     }
 }

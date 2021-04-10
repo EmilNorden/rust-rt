@@ -73,19 +73,29 @@ fn render_sample(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u
 
             //let foo = generate_light_path(scene, rng);
 
-            let color = match scene.find_intersection(&r) {
+            if x == 64 && y == 128 {
+                let ffff = 232;
+            }
+
+            let mut color = match scene.find_intersection(&r) {
                 None => {
+
                     glm::vec3(0.0, 0.0, 0.0)
                 }
-                Some(x) => {
+                Some(intersection) => {
+
+                    if x == 64 && y == 128 {
+                        let ffff = 232;
+                    }
+
                     // Collect incoming light
                     // - own emission
                     // - bidirectional
-                    let mut diffuse = x.material().sample_diffuse(&x.texture_coordinates());
+                    let mut diffuse = intersection.material().sample_diffuse(&intersection.texture_coordinates());
                     let mut direct_light = glm::vec3(0.0, 0.0, 0.0);
                     for light in scene.get_emissive_entities() {
 
-                        if x.entity_id() == 1 {
+                        if intersection.entity_id() == 1 {
                             let ff = 2323;
                         }
                         /*let emissive_surface = light.get_random_emissive_surface(rng);
@@ -111,8 +121,8 @@ fn render_sample(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u
                             direct_light = direct_light + *emissive_surface.material().emission() * diffuse; // * glm::dot(x.world_space_normal(), shadow_ray.direction);
                         }*/
 
-                        let coordinate = x.coordinate();
-                        let norm = x.world_space_normal();
+                        let coordinate = intersection.coordinate();
+                        let norm = intersection.world_space_normal();
                         let new_origin = coordinate + (norm * 0.1);
                         let shadow_ray = Ray {
                             origin: new_origin,
@@ -121,7 +131,7 @@ fn render_sample(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u
 
                         if let Some(light_intersection) = scene.find_intersection(&shadow_ray) {
                             let coo = light_intersection.coordinate();
-                            if coordinate.x < 3.0 && x.entity_id() == 1 && light_intersection.entity_id() == x.entity_id() {
+                            if coordinate.x < 3.0 && intersection.entity_id() == 1 && light_intersection.entity_id() == intersection.entity_id() {
                                 let fsdf = 34;
                             }
                             if light_intersection.entity_id() == light.entity_id() {
@@ -131,9 +141,13 @@ fn render_sample(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u
                         }
                     }
 
-                    *x.material().emission() + (diffuse * direct_light)
+                    *intersection.material().emission() + (diffuse * direct_light)
                 }
             };
+
+
+
+
 
             //let color = trace_ray(&r, scene, 3);
             image.add_pixel(x as usize, y as usize, Color::from_vec3(&(color * sample_importance)));
