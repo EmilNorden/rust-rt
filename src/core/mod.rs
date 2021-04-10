@@ -2,6 +2,7 @@ use crate::content::octree_mesh::OctreeMesh;
 use crate::content::material::Material;
 
 pub mod geom;
+pub mod math;
 
 pub trait Intersection {
     fn coordinate(&self) -> glm::Vec3;
