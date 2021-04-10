@@ -101,12 +101,13 @@ fn main() {
             /*glm::vec3(0.0, -1000.0, 0.0),
             glm::vec3(0.0, 0.0, 0.0),
             glm::vec3(1.0, 1.0, 1.0),*/
-            1000.0,
+            10.0,
             MaterialBuilder::new()
-                .with_diffuse_color(glm::vec3(0.25, 0.1, 0.1))
+                .with_diffuse_color(glm::vec3(1.0, 0.1, 0.1))
                 .build(),
             TransformBuilder::new()
-                .with_translation(glm::vec3(0.0, -1000.0, 0.0))
+                .with_translation(glm::vec3(0.0, -10.0, 0.0))
+                .with_scale(glm::vec3(10.0, 1.0, 10.0))
                 .build(),
         )),
 
@@ -125,18 +126,6 @@ fn main() {
 
         // Diffuse ball
         Box::new(SphereEntity::new(
-            2,
-            1.0,
-            MaterialBuilder::new()
-                .with_diffuse_color(glm::vec3(0.5, 0.5, 1.0))
-                .build(),
-            TransformBuilder::new()
-                .with_translation(glm::vec3(0.0, 2.0, 0.0))
-                .build(),
-        )),
-
-        // Diffuse ball
-        Box::new(SphereEntity::new(
             3,
             1.0,
             MaterialBuilder::new()
@@ -145,6 +134,18 @@ fn main() {
             TransformBuilder::new()
                 .with_translation(glm::vec3(-3.0, 2.0, 0.0))
                 .build()
+        )),
+
+        // Diffuse ball
+        Box::new(SphereEntity::new(
+            2,
+            1.0,
+            MaterialBuilder::new()
+                .with_diffuse_color(glm::vec3(0.5, 0.5, 1.0))
+                .build(),
+            TransformBuilder::new()
+                .with_translation(glm::vec3(0.0, 2.0, 0.0))
+                .build(),
         )),
     ];
 
