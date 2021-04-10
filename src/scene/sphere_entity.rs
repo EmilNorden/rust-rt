@@ -6,29 +6,30 @@ use crate::content::material::Material;
 use num_traits::{Zero, One};
 use rand::rngs::StdRng;
 use rand::Rng;
+use crate::scene::transform::Transform;
 
 pub struct SphereIntersection<'a> {
     entity_id: u32,
     material: &'a Material,
-    transform: &'a glm::Mat4,
-    hit_point: glm::Vec3,
-    sphere_position: glm::Vec3,
+    transform: &'a Transform,
+    world_space_hit_point: glm::Vec3,
+    object_space_normal: glm::Vec4,
     distance: f32,
 }
 
 impl Intersection for SphereIntersection<'_> {
     fn coordinate(&self) -> Vec3 {
-        let tmp = *self.transform * glm::vec4(self.hit_point.x, self.hit_point.y, self.hit_point.z, 1.0);
-        glm::vec3(tmp.x, tmp.y, tmp.z)
+        /*let tmp = *self.transform * glm::vec4(self.object_space_hit_point.x, self.object_space_hit_point.y, self.object_space_hit_point.z, 1.0);
+        glm::vec3(tmp.x, tmp.y, tmp.z)*/
+        self.world_space_hit_point
     }
 
     fn object_space_normal(&self) -> glm::Vec4 {
-        let tmp = glm::normalize(self.hit_point);
-        glm::vec4(tmp.x, tmp.y, tmp.z, 0.0)
+        self.object_space_normal
     }
 
     fn world_space_normal(&self) -> Vec3 {
-        let tmp = *self.transform * self.object_space_normal();
+        let tmp = *self.transform.world() * self.object_space_normal();
         glm::vec3(tmp.x, tmp.y, tmp.z)
     }
 
@@ -63,36 +64,26 @@ impl Intersection for SphereIntersection<'_> {
 
 pub struct SphereEntity {
     entity_id: u32,
-    position: glm::Vec3,
-    rotation: glm::Vec3,
-    scale: glm::Vec3,
     radius: f32,
     bounds: AABB,
     material: Material,
-    transform: glm::Mat4,
-    inverse_transform: glm::Mat4,
+    transform: Transform,
 }
 
 impl SphereEntity {
-    pub fn new(id: u32, position: glm::Vec3, rotation: glm::Vec3, scale: glm::Vec3, radius: f32, material: Material) -> Self {
-        let transform = Self::build_transform(&position, &rotation, &scale);
-        let inverse_transform = glm::inverse(&transform);
+    pub fn new(id: u32, radius: f32, material: Material, mut transform: Transform) -> Self {
         let bounds = AABB {
-            min: position - glm::vec3(radius, radius, radius),
-            max: position + glm::vec3(radius, radius, radius),
-        };
+            min: *transform.translation() - glm::vec3(radius, radius, radius),
+            max: *transform.translation() + glm::vec3(radius, radius, radius),
+        }.transform(transform.world());
 
 
         SphereEntity {
             entity_id: id,
-            position,
-            rotation,
-            scale,
             radius,
-            bounds: bounds.transform(&transform),
+            bounds,
             material,
             transform,
-            inverse_transform,
         }
     }
 
@@ -104,11 +95,11 @@ impl SphereEntity {
         glm::ext::translate(&transform, *position)
     }
 
-    fn intersect_object_ray(&self, object_ray: &Ray) -> Option<Box<dyn Intersection + '_>> {
+    fn intersect_object_space_ray(&self, object_space_ray: &Ray) -> Option<f32> {
         // let oc = world_ray.origin - self.position;
-        let oc = object_ray.origin - glm::vec3(0.0, 0.0, 0.0);
-        let a = glm::dot(object_ray.direction, object_ray.direction);
-        let b = 2.0 * glm::dot(oc, object_ray.direction);
+        let oc = object_space_ray.origin - glm::vec3(0.0, 0.0, 0.0);
+        let a = glm::dot(object_space_ray.direction, object_space_ray.direction);
+        let b = 2.0 * glm::dot(oc, object_space_ray.direction);
 
         // If sphere is behind ray
         if b > 0.0 {
@@ -121,18 +112,12 @@ impl SphereEntity {
             return None;
         }
 
-        let distance = (-b - glm::sqrt(discriminant)) / (2.0 * a);
-        if distance > 0.0 {
+        let object_space_distance = (-b - glm::sqrt(discriminant)) / (2.0 * a);
+        if object_space_distance > 0.0 {
             let fff = 334;
         }
-        Some(Box::new(SphereIntersection {
-            entity_id: self.entity_id,
-            material: &self.material,
-            transform: &self.transform,
-            hit_point: object_ray.origin + (object_ray.direction * distance),
-            sphere_position: self.position,
-            distance,
-        }))
+
+        Some(object_space_distance)
     }
 }
 
@@ -143,7 +128,7 @@ impl Renderable for SphereEntity {
         !self.material.emission().is_zero()
     }
 
-    fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_> {
+    /*fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_> {
         let random_point = glm::normalize(glm::vec3(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>())
             - glm::vec3(0.5, 0.5, 0.5)) * self.radius;
 
@@ -151,17 +136,33 @@ impl Renderable for SphereEntity {
             entity_id: self.entity_id,
             material: &self.material,
             transform: &self.transform,
-            hit_point: random_point,
+            object_space_hit_point: random_point,
             sphere_position: self.position,
             distance: 0.0,
         })
-    }
+    }*/
 }
 
 impl Intersectable for SphereEntity {
     fn intersect(&self, world_ray: &Ray) -> Option<Box<dyn Intersection + '_>> {
-        let object_ray = world_ray.transform(&self.inverse_transform);
-        self.intersect_object_ray(&object_ray)
+        let object_ray = world_ray.transform(&self.transform.inverse_world());
+        if let Some(object_space_distance) = self.intersect_object_space_ray(&object_ray) {
+            let object_space_hit_point = object_ray.origin + (object_ray.direction * object_space_distance);
+            let tmp = *self.transform.world() * glm::vec4(object_space_hit_point.x, object_space_hit_point.y, object_space_hit_point.z, 1.0);
+            let world_space_hit_point = glm::vec3(tmp.x, tmp.y, tmp.z);
+            let world_space_distance = glm::length(world_space_hit_point - world_ray.origin);
+
+            return Some(Box::new(SphereIntersection {
+                entity_id: self.entity_id,
+                material: &self.material,
+                transform: &self.transform,
+                world_space_hit_point: glm::vec3(world_space_hit_point.x, world_space_hit_point.y, world_space_hit_point.z),
+                object_space_normal: glm::vec4(object_space_hit_point.x, object_space_hit_point.y, object_space_hit_point.z, 0.0),
+                distance: world_space_distance,
+            }));
+        }
+
+        None
     }
 
     fn bounds(&self) -> &AABB {
@@ -172,5 +173,15 @@ impl Intersectable for SphereEntity {
         self.entity_id
     }
 
-    fn position(&self) -> glm::Vec3 { self.position }
+    fn transform(&self) -> &Transform { &self.transform }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn intersect_object_space_ray_simple() {
+        //let sphere = SphereEntity::new(0, glm::vec3(0.0, 0.0, 0.0), )
+    }
 }

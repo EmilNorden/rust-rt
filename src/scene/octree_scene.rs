@@ -29,7 +29,7 @@ impl Scene for Octree {
         self.trace_octant(ray, &OctantId { id: 0 })
     }
 
-    fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_> {
+    /*fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_> {
         let emissive_entities: Vec<&Box<dyn SceneEntity>> = self.entities
             .iter()
             .filter(|x| x.is_emissive())
@@ -38,7 +38,7 @@ impl Scene for Octree {
         let random_entity = emissive_entities[rng.gen_range(0..emissive_entities.len())];
 
         random_entity.get_random_emissive_surface(rng)
-    }
+    }*/
 
     fn get_emissive_entities(&self) -> Vec<&Box<dyn SceneEntity>> {
         self.entities.iter().filter(|x| x.is_emissive()).collect()

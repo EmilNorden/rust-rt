@@ -7,21 +7,24 @@ use std::rc::Rc;
 use glm::ext::rotate;
 use crate::content::material::Material;
 use rand::rngs::StdRng;
+use crate::scene::transform::Transform;
 
 pub mod octree_scene;
 pub mod sphere_entity;
 pub mod mesh_entity;
+pub mod transform;
+pub mod transform_builder;
 
 pub trait Intersectable {
     fn intersect<'a >(&'a self, world_ray: &Ray) -> Option<Box<dyn Intersection + 'a>>;
     fn bounds(&self) -> &AABB;
     fn entity_id(&self) -> u32;
-    fn position(&self) -> glm::Vec3;
+    fn transform(&self) -> &Transform;
 }
 
 pub trait Renderable {
     fn is_emissive(&self) -> bool;
-    fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_>;
+    // fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_>;
 }
 
 pub trait SceneEntity : Intersectable + Renderable {}
@@ -100,6 +103,6 @@ impl SceneEntity {
 */
 pub trait Scene {
     fn find_intersection(&self, ray: &crate::core::Ray) -> Option<Box<dyn Intersection + '_>>;
-    fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_>;
+    // fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_>;
     fn get_emissive_entities(&self) -> Vec<&Box<dyn SceneEntity>>;
 }

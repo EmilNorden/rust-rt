@@ -1,18 +1,18 @@
 use gl;
 use std::os::raw::c_void;
 
-pub struct Texture {
+pub struct GlTexture {
     id: gl::types::GLuint,
 }
 
-impl Texture {
+impl GlTexture {
     pub fn bind(&self) {
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, self.id)
         }
     }
 
-    pub fn from_pixels(width: u32, height: u32, pixels: &Vec<u8>) -> Result<Texture, String> {
+    pub fn from_pixels(width: u32, height: u32, pixels: &Vec<u8>) -> Result<GlTexture, String> {
         unsafe {
             let mut texture: gl::types::GLuint = 0;
             gl::GenTextures(1, &mut texture);
@@ -45,7 +45,7 @@ impl Texture {
 
             gl::BindTexture(gl::TEXTURE_2D, 0);
 
-            Ok(Texture { id: texture })
+            Ok(GlTexture { id: texture })
         }
     }
 

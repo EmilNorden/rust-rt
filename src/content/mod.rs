@@ -8,6 +8,7 @@ pub mod mesh;
 pub mod octree_mesh;
 pub mod material;
 pub mod store;
+pub mod material_builder;
 
 pub trait ModelLoader {
     fn load(&self, path: &str) -> Result<Model, &str>;

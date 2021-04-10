@@ -1,6 +1,6 @@
 use image::io::Reader as ImageReader;
 
-
+#[derive(Clone)]
 pub struct Texture {
     buffer: Vec<u8>,
     width: u32,
@@ -26,14 +26,16 @@ pub struct Material {
     diffuse_map: Option<Texture>,
     diffuse: glm::Vec3,
     emission: glm::Vec3,
+    reflectivity: f32,
 }
 
 impl Material {
-    pub fn new(diffuse_map: Option<Texture>, diffuse: glm::Vec3, emission: glm::Vec3) -> Material {
+    pub fn new(diffuse_map: Option<Texture>, diffuse: glm::Vec3, emission: glm::Vec3, reflectivity: f32) -> Material {
         Material {
             diffuse_map,
             diffuse,
             emission,
+            reflectivity
         }
     }
 

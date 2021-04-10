@@ -7,13 +7,13 @@ extern crate gl;
 extern crate image;
 
 pub mod render_gl;
-pub mod texture;
+pub mod gl_texture;
 pub mod window;
 mod frame_interpolator;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use crate::texture::Texture;
+use crate::gl_texture::GlTexture;
 use crate::scene::{Intersectable, SceneEntity};
 use crate::content::wavefront_model_loader::{WaveFrontObjectLoader};
 use std::cell::RefCell;
@@ -30,6 +30,8 @@ use crate::frame_interpolator::FrameInterpolator;
 use crate::camera::Camera;
 use crate::renderer::{render, ImageBuffer};
 use rand::SeedableRng;
+use crate::content::material_builder::MaterialBuilder;
+use crate::scene::transform_builder::TransformBuilder;
 
 mod content;
 mod renderer;
@@ -64,7 +66,6 @@ fn main() {
             let scene_description = interpolator.frame_at(current_time);
 
             println!("time: {}", current_time);
-
         }
         // let scene_description = interpolator.frame_at()
     }
@@ -92,38 +93,59 @@ fn main() {
     light.set_position(glm::vec3(0.0, 5.0, 0.0));
     light.set_scale(glm::vec3(0.01, 0.01, 0.01));*/
 
+
     let entities: Vec<Box<dyn SceneEntity>> = vec![
+        // Floor
         Box::new(SphereEntity::new(
             0,
+            /*glm::vec3(0.0, -1000.0, 0.0),
             glm::vec3(0.0, 0.0, 0.0),
-            glm::vec3(0.0, 0.0, 0.0),
-            glm::vec3(1.0, 1.0, 1.0),
-            1.0,
-            Material::new(None, glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.8, 0.8, 1.0))
+            glm::vec3(1.0, 1.0, 1.0),*/
+            1000.0,
+            MaterialBuilder::new()
+                .with_diffuse_color(glm::vec3(0.25, 0.1, 0.1))
+                .build(),
+            TransformBuilder::new()
+                .with_translation(glm::vec3(0.0, -1000.0, 0.0))
+                .build(),
         )),
+
+        // Sun
         Box::new(SphereEntity::new(
             1,
-            glm::vec3(4.0, 0.0, 0.0),
-            glm::vec3(0.0, 0.0, 0.0),
-            glm::vec3(1.0, 1.0, 1.0),
-            1.0,
-            Material::new(None, glm::vec3(1.0, 0.5, 0.5), glm::vec3(0.0, 0.0, 0.0))
+            10.0,
+            MaterialBuilder::new()
+                .with_emissive_color(glm::vec3(1.0, 1.0, 1.0))
+                .with_diffuse_color(glm::vec3(1.0, 1.0, 1.0))
+                .build(),
+            TransformBuilder::new()
+                .with_translation(glm::vec3(0.0, 20.0, 0.0))
+                .build(),
         )),
+
+        // Diffuse ball
         Box::new(SphereEntity::new(
             2,
-            glm::vec3(2.0, 0.1, 0.0),
-            glm::vec3(0.0, 0.0, 0.0),
-            glm::vec3(1.0, 1.0, 1.0),
-            0.3,
-            Material::new(None, glm::vec3(1.0, 0.5, 0.5), glm::vec3(0.0, 0.0, 0.0))
+            1.0,
+            MaterialBuilder::new()
+                .with_diffuse_color(glm::vec3(0.5, 0.5, 1.0))
+                .build(),
+            TransformBuilder::new()
+                .with_translation(glm::vec3(0.0, 2.0, 0.0))
+                .build(),
         )),
-        /*Box::new(SphereEntity::new(
-            glm::vec3(0.0, -11.0, 0.0),
-            glm::vec3(0.0, 0.0, 0.0),
-            glm::vec3(1.0, 1.0, 1.0),
-            10.0,
-            Material::new(None, glm::vec3(1.0, 0.0, 0.0), glm::vec3(1.0, 0.0, 0.0))
-        )),*/
+
+        // Diffuse ball
+        Box::new(SphereEntity::new(
+            3,
+            1.0,
+            MaterialBuilder::new()
+                .with_diffuse_color(glm::vec3(0.5, 0.5, 1.0))
+                .build(),
+            TransformBuilder::new()
+                .with_translation(glm::vec3(-3.0, 2.0, 0.0))
+                .build()
+        )),
     ];
 
     let scene2 = scene::octree_scene::Octree::create(entities, 4);
@@ -141,7 +163,7 @@ fn main() {
 
     let mut pixels = vec![0u8; (window.width() * window.height() * 3) as usize];
 
-    let texture = Texture::from_pixels(window.width(), window.height(), &pixels).unwrap();
+    let texture = GlTexture::from_pixels(window.width(), window.height(), &pixels).unwrap();
     texture.bind();
     let mut event_pump = sdl.event_pump().unwrap();
 

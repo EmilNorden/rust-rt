@@ -75,7 +75,7 @@ fn render_sample(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u
 
             let color = match scene.find_intersection(&r) {
                 None => {
-                    glm::vec3(1.0, 0.0, 1.0)
+                    glm::vec3(0.0, 0.0, 0.0)
                 }
                 Some(x) => {
                     // Collect incoming light
@@ -116,7 +116,7 @@ fn render_sample(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u
                         let new_origin = coordinate + (norm * 0.1);
                         let shadow_ray = Ray {
                             origin: new_origin,
-                            direction: glm::normalize( light.position() - new_origin)
+                            direction: glm::normalize( *light.transform().translation() - new_origin)
                         };
 
                         if let Some(light_intersection) = scene.find_intersection(&shadow_ray) {
@@ -154,7 +154,7 @@ pub fn render(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u32>
     image
 }
 
-fn generate_light_path(scene: &'a dyn Scene, rng: &mut StdRng) -> Vec<Box<dyn Intersection + 'a>> {
+/*fn generate_light_path(scene: &'a dyn Scene, rng: &mut StdRng) -> Vec<Box<dyn Intersection + 'a>> {
     let mut result = Vec::new();
 
     result.push(scene.get_random_emissive_surface(rng));
@@ -181,7 +181,7 @@ fn generate_light_path(scene: &'a dyn Scene, rng: &mut StdRng) -> Vec<Box<dyn In
     }
 
     result
-}
+}*/
 
 /*fn generate_camera_path(world_ray: &Ray, scene: &dyn Scene) -> Vec<Box<dyn Intersection>> {
     const PATH_LENGTH: usize = 3;
