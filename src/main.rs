@@ -142,6 +142,7 @@ fn main() {
             1.0,
             MaterialBuilder::new()
                 .with_diffuse_color(glm::vec3(0.5, 0.5, 1.0))
+                .with_reflectivity(0.7)
                 .build(),
             TransformBuilder::new()
                 .with_translation(glm::vec3(0.0, 2.0, 0.0))

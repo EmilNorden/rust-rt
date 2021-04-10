@@ -39,6 +39,8 @@ impl Material {
         }
     }
 
+    pub fn reflectivity(&self) -> f32 { self.reflectivity }
+
     pub fn emission(&self) -> &glm::Vec3 { &self.emission }
 
     pub fn sample_diffuse(&self, uv: &glm::Vec2) -> glm::Vector3<f32> {

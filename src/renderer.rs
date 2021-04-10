@@ -2,6 +2,7 @@ use crate::scene::Scene;
 use crate::camera::Camera;
 use crate::core::{Ray, Intersection};
 use rand::rngs::StdRng;
+use std::ops::{Mul, Add};
 
 pub struct ImageBuffer {
     pixels: Vec<u8>,
@@ -66,6 +67,78 @@ impl ImageBuffer {
     }
 }
 
+fn shade(scene: &dyn Scene, ray: &Ray, depth_limit: u32) -> glm::Vec3 {
+    if depth_limit == 0 {
+        return glm::vec3(0.0, 0.0, 0.0);
+    }
+
+    match scene.find_intersection(ray) {
+        None => {
+            glm::vec3(0.0, 0.0, 0.0)
+        }
+        Some(intersection) => {
+
+            let coordinate = intersection.coordinate();
+            let norm = intersection.world_space_normal();
+
+            // Collect incoming light
+            // - own emission
+            // - bidirectional
+
+            let mut reflected = glm::vec3(0.0, 0.0, 0.0);
+            if intersection.material().reflectivity() > 0.0 {
+                let reflected_dir =
+                    glm::reflect(ray.direction, intersection.world_space_normal());
+
+                let reflected_ray = Ray {
+                    origin: coordinate + (norm * 0.1),
+                    direction: reflected_dir
+                };
+
+                reflected = shade(scene, &reflected_ray, depth_limit - 1);
+
+            }
+
+            let mut diffuse = intersection.material().sample_diffuse(&intersection.texture_coordinates());
+            let mut direct_light = glm::vec3(0.0, 0.0, 0.0);
+            for light in scene.get_emissive_entities() {
+
+                if intersection.entity_id() == 1 {
+                    let ff = 2323;
+                }
+
+                let new_origin = coordinate + (norm * 0.1);
+                let shadow_ray = Ray {
+                    origin: new_origin,
+                    direction: glm::normalize( *light.transform().translation() - new_origin)
+                };
+
+                if let Some(light_intersection) = scene.find_intersection(&shadow_ray) {
+                    let coo = light_intersection.coordinate();
+                    if coordinate.x < 3.0 && intersection.entity_id() == 1 && light_intersection.entity_id() == intersection.entity_id() {
+                        let fsdf = 34;
+                    }
+                    if light_intersection.entity_id() == light.entity_id() {
+                        direct_light = direct_light + *light_intersection.material().emission();
+                    }
+
+                }
+            }
+            lerp(
+                *intersection.material().emission() + (diffuse * direct_light),
+                reflected,
+                intersection.material().reflectivity())
+       }
+    }
+}
+
+fn lerp<T>(a: T, b: T, factor: f32) -> T
+    where
+        T: Mul<f32, Output = T> + Add<T, Output = T>
+{
+    a * (1.0 - factor) + b * factor
+}
+
 fn render_sample(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u32>, rng: &mut StdRng, image: &mut ImageBuffer, sample_importance: f32) {
     for y in 0..resolution.y {
         for x in 0..resolution.x {
@@ -73,77 +146,7 @@ fn render_sample(scene: &dyn Scene, camera: &Camera, resolution: &glm::Vector2<u
 
             //let foo = generate_light_path(scene, rng);
 
-            if x == 64 && y == 128 {
-                let ffff = 232;
-            }
-
-            let mut color = match scene.find_intersection(&r) {
-                None => {
-
-                    glm::vec3(0.0, 0.0, 0.0)
-                }
-                Some(intersection) => {
-
-                    if x == 64 && y == 128 {
-                        let ffff = 232;
-                    }
-
-                    // Collect incoming light
-                    // - own emission
-                    // - bidirectional
-                    let mut diffuse = intersection.material().sample_diffuse(&intersection.texture_coordinates());
-                    let mut direct_light = glm::vec3(0.0, 0.0, 0.0);
-                    for light in scene.get_emissive_entities() {
-
-                        if intersection.entity_id() == 1 {
-                            let ff = 2323;
-                        }
-                        /*let emissive_surface = light.get_random_emissive_surface(rng);
-                        //TODO: Do I need to check that emissive_surface and x is not the same surface?
-                        let coord = x.coordinate();
-                        let shadow_ray = Ray {
-                            origin: x.coordinate() + (x.world_space_normal() * 0.01),
-                            direction: glm::normalize(emissive_surface.coordinate() - x.coordinate())
-                        };
-
-                        if let Some(light_intersection) = scene.find_intersection(&shadow_ray) {
-                            if light_intersection.entity_id() != emissive_surface.entity_id() {
-                                let ffs = light_intersection.coordinate();
-
-                                continue;
-
-                            }
-
-                            if glm::ext::sqlength(light_intersection.coordinate() - emissive_surface.coordinate()) > 0.4 {
-                                continue;
-                            }
-
-                            direct_light = direct_light + *emissive_surface.material().emission() * diffuse; // * glm::dot(x.world_space_normal(), shadow_ray.direction);
-                        }*/
-
-                        let coordinate = intersection.coordinate();
-                        let norm = intersection.world_space_normal();
-                        let new_origin = coordinate + (norm * 0.1);
-                        let shadow_ray = Ray {
-                            origin: new_origin,
-                            direction: glm::normalize( *light.transform().translation() - new_origin)
-                        };
-
-                        if let Some(light_intersection) = scene.find_intersection(&shadow_ray) {
-                            let coo = light_intersection.coordinate();
-                            if coordinate.x < 3.0 && intersection.entity_id() == 1 && light_intersection.entity_id() == intersection.entity_id() {
-                                let fsdf = 34;
-                            }
-                            if light_intersection.entity_id() == light.entity_id() {
-                                direct_light = direct_light + *light_intersection.material().emission();
-                            }
-
-                        }
-                    }
-
-                    *intersection.material().emission() + (diffuse * direct_light)
-                }
-            };
+            let color = shade(scene, &r, 2);
 
 
 
