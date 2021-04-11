@@ -64,7 +64,7 @@ impl Intersection for SphereIntersection<'_> {
 
 pub struct SphereEntity {
     entity_id: u32,
-    radius: f32,
+    squared_radius: f32,
     bounds: AABB,
     material: Material,
     transform: Transform,
@@ -80,7 +80,7 @@ impl SphereEntity {
 
         SphereEntity {
             entity_id: id,
-            radius,
+            squared_radius: radius*radius,
             bounds,
             material,
             transform,
@@ -97,27 +97,36 @@ impl SphereEntity {
 
     fn intersect_object_space_ray(&self, object_space_ray: &Ray) -> Option<f32> {
         // let oc = world_ray.origin - self.position;
-        let oc = object_space_ray.origin - glm::vec3(0.0, 0.0, 0.0);
-        let a = glm::dot(object_space_ray.direction, object_space_ray.direction);
-        let b = 2.0 * glm::dot(oc, object_space_ray.direction);
+        let L =  glm::vec3(0.0, 0.0, 0.0) - object_space_ray.origin;
+        let tca = glm::dot(L, object_space_ray.direction);
 
         // If sphere is behind ray
-        if b > 0.0 {
+        /*if tca < 0.0 {
+            return None;
+        }*/
+
+        let d2 = glm::dot(L, L) - tca * tca;
+
+        if d2 > self.squared_radius {
             return None;
         }
 
-        let c = glm::dot(oc, oc) - self.radius * self.radius;
-        let discriminant = b * b - 4.0 * a * c;
-        if discriminant < 0.0 {
-            return None;
+        let thc = glm::sqrt(self.squared_radius - d2);
+        let mut t0 = tca - thc;
+        let mut t1 = tca + thc;
+
+        if t0 > t1 {
+            std::mem::swap(&mut t0, &mut t1);
         }
 
-        let object_space_distance = (-b - glm::sqrt(discriminant)) / (2.0 * a);
-        if object_space_distance > 0.0 {
-            let fff = 334;
+        if t0 < 0.0 {
+            t0 = t1;
+            if t0 < 0.0 {
+                return None;
+            }
         }
 
-        Some(object_space_distance)
+        return Some(t0);
     }
 }
 
@@ -210,5 +219,19 @@ mod tests {
         let result = sphere.intersect_object_space_ray(&ray);
 
         assert!(result.is_none())
+    }
+
+    #[test]
+    fn intersect_object_space_ray_should_inside() {
+        let sphere = SphereEntity::new(0, 1.0, MaterialBuilder::new().build(), TransformBuilder::new().build());
+
+        let ray = Ray {
+            origin: glm::vec3(0.0, 0.0, 0.9),
+            direction: glm::vec3(0.0, 0.0, 1.0)
+        };
+
+        let result = sphere.intersect_object_space_ray(&ray);
+
+        // assert!(result.is_none())
     }
 }

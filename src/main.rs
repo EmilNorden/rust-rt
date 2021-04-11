@@ -43,6 +43,10 @@ mod camera;
 mod color;
 
 fn main() {
+    let mut rng = rand::rngs::StdRng::seed_from_u64(123);
+    let sdl = sdl2::init().unwrap();
+    let window = window::Window::create(&sdl).unwrap();
+
     let loader = WaveFrontObjectLoader {};
     let mut store = ModelStore::new(Box::new(loader));
     // let args = std::env::args();
@@ -82,84 +86,8 @@ fn main() {
     light.set_scale(glm::vec3(0.01, 0.01, 0.01));*/
 
 
-    let entities: Vec<Box<dyn SceneEntity+Sync+Send>> = vec![
-        // Floor
-        Box::new(SphereEntity::new(
-            0,
-            /*glm::vec3(0.0, -1000.0, 0.0),
-            glm::vec3(0.0, 0.0, 0.0),
-            glm::vec3(1.0, 1.0, 1.0),*/
-            10.0,
-            MaterialBuilder::new()
-                .with_diffuse_color(glm::vec3(1.0, 0.1, 0.1))
-                .build(),
-            TransformBuilder::new()
-                .with_translation(glm::vec3(0.0, -10.0, 0.0))
-                .with_scale(glm::vec3(10.0, 1.0, 10.0))
-                .build(),
-        )),
-
-        // Sun
-        Box::new(SphereEntity::new(
-            1,
-            10.0,
-            MaterialBuilder::new()
-                .with_emissive_color(glm::vec3(1.0, 1.0, 1.0))
-                .with_diffuse_color(glm::vec3(1.0, 1.0, 1.0))
-                .build(),
-            TransformBuilder::new()
-                .with_translation(glm::vec3(0.0, 20.0, 0.0))
-                .build(),
-        )),
-
-        // Diffuse ball
-        Box::new(SphereEntity::new(
-            3,
-            1.0,
-            MaterialBuilder::new()
-                .with_diffuse_color(glm::vec3(0.5, 0.5, 1.0))
-                .build(),
-            TransformBuilder::new()
-                .with_translation(glm::vec3(-3.0, 2.0, 0.0))
-                .build()
-        )),
-
-        // Diffuse ball
-        Box::new(SphereEntity::new(
-            2,
-            1.0,
-            MaterialBuilder::new()
-                .with_diffuse_color(glm::vec3(0.5, 0.5, 1.0))
-                .with_reflectivity(0.7)
-                .build(),
-            TransformBuilder::new()
-                .with_translation(glm::vec3(0.0, 2.0, 0.0))
-                .build(),
-        )),
-    ];
-
-    let scene2: Arc<dyn Scene+Sync+Send> = Arc::new(scene::octree_scene::Octree::create(entities, 4));
-
-    let sdl = sdl2::init().unwrap();
-    let window = window::Window::create(&sdl).unwrap();
-
-    let mut camera = Camera::new();
-    camera.set_position(glm::Vector3::new(0.0, 2.5, -15.0));
-    // camera.set_position(glm::Vector3::new(0.0, 300.0, 300.0));
-    camera.set_direction(glm::Vector3::new(0.0, 0.0, 1.0));
-    // camera.set_direction(glm::Vector3::new(0.0, -1.0, -1.0));
-    camera.set_resolution(glm::Vector2::new(window.width(), window.height()));
-    let mut rng = rand::rngs::StdRng::seed_from_u64(123);
-
-    let mut pixels = vec![0u8; (window.width() * window.height() * 3) as usize];
-
-    let texture = GlTexture::from_pixels(window.width(), window.height(), &pixels).unwrap();
-    texture.bind();
-    let mut event_pump = sdl.event_pump().unwrap();
-
-    camera.update();
-    let image = render(&scene2, &camera, &glm::Vector2::<u32>::new(window.width(), window.height()), &mut rng);
-
+    let mut angle = 0.0;
+   let mut event_pump = sdl.event_pump().unwrap();
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -171,10 +99,83 @@ fn main() {
             }
         }
 
+        let entities: Vec<Box<dyn SceneEntity+Sync+Send>> = vec![
+            // Floor
+            Box::new(SphereEntity::new(
+                0,
+                /*glm::vec3(0.0, -1000.0, 0.0),
+                glm::vec3(0.0, 0.0, 0.0),
+                glm::vec3(1.0, 1.0, 1.0),*/
+                10.0,
+                MaterialBuilder::new()
+                    .with_diffuse_color(glm::vec3(1.0, 0.1, 0.1))
+                    .build(),
+                TransformBuilder::new()
+                    .with_translation(glm::vec3(0.0, -10.0, 0.0))
+                    .with_scale(glm::vec3(10.0, 1.0, 10.0))
+                    .build(),
+            )),
+
+            // Sun
+            Box::new(SphereEntity::new(
+                1,
+                10.0,
+                MaterialBuilder::new()
+                    .with_emissive_color(glm::vec3(1.0, 1.0, 1.0))
+                    .with_diffuse_color(glm::vec3(1.0, 1.0, 1.0))
+                    .build(),
+                TransformBuilder::new()
+                    .with_translation(glm::vec3(0.0, 20.0, 0.0))
+                    .build(),
+            )),
+
+            // Diffuse ball
+            Box::new(SphereEntity::new(
+                3,
+                1.0,
+                MaterialBuilder::new()
+                    .with_diffuse_color(glm::vec3(0.5, 0.5, 1.0))
+                    .with_reflectivity(1.0)
+                    .build(),
+                TransformBuilder::new()
+                    .with_translation(glm::vec3(glm::sin(angle) * 3.0, 2.0, glm::cos(angle)*3.0))
+                    .build()
+            )),
+
+            // Diffuse ball
+            Box::new(SphereEntity::new(
+                2,
+                1.0,
+                MaterialBuilder::new()
+                    .with_diffuse_color(glm::vec3(0.5, 0.5, 1.0))
+                    .build(),
+                TransformBuilder::new()
+                    .with_translation(glm::vec3(0.0, 2.0, 0.0))
+                    .build(),
+            )),
+        ];
+
+        let scene2: Arc<dyn Scene+Sync+Send> = Arc::new(scene::octree_scene::Octree::create(entities, 4));
+
+        let mut camera = Camera::new();
+        camera.set_position(glm::Vector3::new(0.0, 2.5, -15.0));
+        camera.set_direction(glm::Vector3::new(0.0, 0.0, 1.0));
+        camera.set_resolution(glm::Vector2::new(window.width(), window.height()));
+
+        let mut pixels = vec![0u8; (window.width() * window.height() * 3) as usize];
+        let texture = GlTexture::from_pixels(window.width(), window.height(), &pixels).unwrap();
+        texture.bind();
+
+        camera.update();
+        let image = render(&scene2, &camera, &glm::Vector2::<u32>::new(window.width(), window.height()), &mut rng);
+
+
         window.clear();
         texture.set_pixels(window.width(), window.height(), image.pixels());
         texture.bind();
         window.render();
         window.swap();
+
+        angle += 0.1;
     }
 }
