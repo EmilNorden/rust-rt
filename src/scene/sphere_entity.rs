@@ -192,6 +192,8 @@ mod tests {
     use super::*;
     use crate::content::material_builder::MaterialBuilder;
     use crate::scene::transform_builder::TransformBuilder;
+    use glm::is_approx_eq;
+    use float_cmp::{F32Margin, ApproxEq};
 
     #[test]
     fn intersect_object_space_ray_simple_intersection() {
@@ -222,7 +224,7 @@ mod tests {
     }
 
     #[test]
-    fn intersect_object_space_ray_should_inside() {
+    fn intersect_object_space_ray_should_handle_rays_originating_inside_sphere() {
         let sphere = SphereEntity::new(0, 1.0, MaterialBuilder::new().build(), TransformBuilder::new().build());
 
         let ray = Ray {
@@ -231,7 +233,6 @@ mod tests {
         };
 
         let result = sphere.intersect_object_space_ray(&ray);
-
-        // assert!(result.is_none())
+        assert!(result.unwrap().approx_eq(0.1, F32Margin { ulps: 2, epsilon: std::f32::EPSILON }))
     }
 }

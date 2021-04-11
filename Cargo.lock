@@ -282,6 +282,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "float-cmp"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1267f4ac4f343772758f7b1bdcbe767c218bbab93bb432acbf5162bbf85a6c4"
+dependencies = [
+ "num-traits 0.2.11",
+]
+
+[[package]]
 name = "fuchsia-cprng"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -830,6 +839,7 @@ name = "rust-rt"
 version = "0.1.0"
 dependencies = [
  "assimp",
+ "float-cmp",
  "gl",
  "glm",
  "image",
