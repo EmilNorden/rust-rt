@@ -104,5 +104,7 @@ impl SceneEntity {
 pub trait Scene {
     fn find_intersection(&self, ray: &crate::core::Ray) -> Option<Box<dyn Intersection + '_>>;
     // fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_>;
-    fn get_emissive_entities(&self) -> Vec<&Box<dyn SceneEntity>>;
+    fn get_emissive_entities(&self) -> Vec<&Box<dyn SceneEntity+Sync+Send>>;
 }
+
+pub trait ThreadSafeScene : Scene + Send + Sync {}

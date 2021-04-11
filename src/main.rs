@@ -14,7 +14,7 @@ mod frame_interpolator;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use crate::gl_texture::GlTexture;
-use crate::scene::{Intersectable, SceneEntity};
+use crate::scene::{Intersectable, SceneEntity, Scene, ThreadSafeScene};
 use crate::content::wavefront_model_loader::{WaveFrontObjectLoader};
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -40,6 +40,7 @@ mod core;
 mod render_configuration;
 mod frame_processor;
 mod camera;
+mod color;
 
 fn main() {
     let loader = WaveFrontObjectLoader {};
@@ -58,19 +59,6 @@ fn main() {
     let number_of_frames = (config.duration * config.frames_per_second as f64) as usize;
     let seconds_per_frame = 1.0 / config.frames_per_second as f64;
     let samples_per_frame = glm::floor(seconds_per_frame / config.shutter_speed) as usize;
-    for frame_number in 0..number_of_frames {
-        for sample_number in 0..samples_per_frame {
-            let current_time =
-                (frame_number as f64 * seconds_per_frame) + (sample_number as f64 * config.shutter_speed);
-
-            let scene_description = interpolator.frame_at(current_time);
-
-            println!("time: {}", current_time);
-        }
-        // let scene_description = interpolator.frame_at()
-    }
-
-    let b = config.keyframes.iter();
 
     /*let mut apricot1 = ModelEntity::new(
         store.load("apricot", "/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj")
@@ -94,7 +82,7 @@ fn main() {
     light.set_scale(glm::vec3(0.01, 0.01, 0.01));*/
 
 
-    let entities: Vec<Box<dyn SceneEntity>> = vec![
+    let entities: Vec<Box<dyn SceneEntity+Sync+Send>> = vec![
         // Floor
         Box::new(SphereEntity::new(
             0,
@@ -150,7 +138,7 @@ fn main() {
         )),
     ];
 
-    let scene2 = scene::octree_scene::Octree::create(entities, 4);
+    let scene2: Arc<dyn Scene+Sync+Send> = Arc::new(scene::octree_scene::Octree::create(entities, 4));
 
     let sdl = sdl2::init().unwrap();
     let window = window::Window::create(&sdl).unwrap();

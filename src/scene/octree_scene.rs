@@ -14,7 +14,7 @@ struct OctantId { pub id: usize }
 struct EntityId { pub id: usize }
 
 pub struct Octree {
-    entities: Vec<Box<dyn SceneEntity>>,
+    entities: Vec<Box<dyn SceneEntity+Sync+Send>>,
     octants: Vec<Octant>,
 }
 
@@ -40,7 +40,7 @@ impl Scene for Octree {
         random_entity.get_random_emissive_surface(rng)
     }*/
 
-    fn get_emissive_entities(&self) -> Vec<&Box<dyn SceneEntity>> {
+    fn get_emissive_entities(&self) -> Vec<&Box<dyn SceneEntity+Sync+Send>> {
         self.entities.iter().filter(|x| x.is_emissive()).collect()
     }
 }
@@ -86,7 +86,7 @@ impl Octree {
         self.trace_octant(ray, &OctantId { id: 0 })
     }
 
-    pub fn create(entities: Vec<Box<dyn SceneEntity>>, depth_limit: usize) -> Octree {
+    pub fn create(entities: Vec<Box<dyn SceneEntity+Sync+Send>>, depth_limit: usize) -> Octree {
         // let bounds = AABB::from_bounds(&entities.iter().map(|x| x.model.bounds().transform(&glm::inverse(&x.inverse_transform))));
         let bounds = AABB::from_bounds(&entities.iter().map(|x| x.bounds().clone()));
 
