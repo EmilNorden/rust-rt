@@ -17,6 +17,11 @@ pub struct ImageBuffer {
     height: usize,
 }
 
+struct WorkerResult {
+    scanline_number: usize,
+    pixels: Vec<Color>
+}
+
 #[derive(Clone)]
 pub struct ScanlineProducer {
     scanline: Arc<AtomicUsize>,
@@ -144,11 +149,14 @@ fn shade(scene: &Arc<dyn Scene+Sync+Send>, ray: &Ray, depth_limit: u32) -> glm::
     }
 }
 
-fn render_sample_thread(scene: Arc<dyn Scene+Sync+Send>, camera: Camera, render_width: usize, scanline_producer: ScanlineProducer, tx: Sender<(usize, Vec<Color>)>) -> JoinHandle<()> {
-    let scene_clone = scene.clone();
+fn render_sample_thread(scene: Arc<dyn Scene+Sync+Send>, camera: Camera, render_width: usize, scanline_producer: ScanlineProducer, tx: Sender<Vec<WorkerResult>>) -> JoinHandle<()> {
     thread::spawn(move || {
 
-        let mut scanline = Vec::with_capacity(render_width);
+        let mut pixels = vec![Color::black(); render_width];
+        // Performance idea: use with_capacity and set it to (scanline_count / thread_count)
+        // Since for a perfectly balanced workload (however unlikely) thats how many scanlines each thread
+        // will render.
+        let mut results = Vec::new();
 
         loop {
             match scanline_producer.next() {
@@ -157,39 +165,56 @@ fn render_sample_thread(scene: Arc<dyn Scene+Sync+Send>, camera: Camera, render_
                     for x in 0..render_width {
                         let r = camera.cast_ray(x as usize, scanline_number);
 
-                        let color = shade(&scene_clone, &r, 2);
+                        let color = shade(&scene, &r, 2);
 
                         // scanline[x] = Color::from_vec3(&(color * sample_importance));
-                        scanline[x] = Color::from_vec3(&color);
-                        //image.add_pixel(x as usize, y as usize, Color::from_vec3(&(color * sample_importance)));
+                        pixels[x] = Color::from_vec3(&color);
                     }
 
-                    tx.send((scanline_number, scanline.to_vec())).unwrap();
+                    results.push(WorkerResult {
+                        scanline_number,
+                        pixels: pixels.clone()
+                    });
+                    // tx.send((scanline_number, scanline.to_vec())).unwrap();
                 }
             }
         }
+
+        tx.send(results).unwrap();
     })
 }
 
 fn render_sample(scene: &Arc<dyn Scene+Sync+Send>, camera: &Camera, resolution: &glm::Vector2<u32>, rng: &mut StdRng, image: &mut ImageBuffer, sample_importance: f32) {
+    let now = Instant::now();
     let sp = ScanlineProducer::new(resolution.y as usize);
-/*
-    // let (tx, rx) = std::sync::mpsc::channel();
+
+    let (tx, rx) = std::sync::mpsc::channel();
     let mut threads = Vec::new();
-    for tid in 0..3 {
-        let sp_clone = sp.clone();
-        let scene_clone = scene.clone();
-        let camera_clone = camera.clone();
-        let render_width = resolution.x;
-        threads.push(thread::spawn(move || {}));
+    for i in 0..4 {
+        threads.push(render_sample_thread(scene.clone(), camera.clone(), resolution.x as usize, sp.clone(), tx.clone()));
+    }
+
+    // Once all senders (tx) have closed the receiver (rx) will close.
+    // Each thread gets their own clone of tx, but this original tx will need to be dropped explicitly
+    // Or else the for loop below will never stop
+    std::mem::drop(tx);
+
+    for worker_results in rx {
+        for scanline in worker_results {
+            for x in 0..resolution.x as usize {
+                image.add_pixel(x, scanline.scanline_number, scanline.pixels[x].clone());
+            }
+        }
+
     }
 
     for thread in threads {
         thread.join().unwrap();
-    }*/
+    }
+    println!("Render time: {}ms", now.elapsed().as_millis());
 
 
-    let now = Instant::now();
+    /*let now = Instant::now();
     for y in 0..resolution.y {
         for x in 0..resolution.x {
             let r = camera.cast_ray(x as usize, y as usize);
@@ -200,7 +225,7 @@ fn render_sample(scene: &Arc<dyn Scene+Sync+Send>, camera: &Camera, resolution: 
         }
     }
 
-    println!("Render time: {}ms", now.elapsed().as_millis());
+    println!("Render time: {}ms", now.elapsed().as_millis());*/
 }
 
 pub fn render(scene: &Arc<dyn Scene+Sync+Send>, camera: &Camera, resolution: &glm::Vector2<u32>, rng: &mut StdRng) -> ImageBuffer {

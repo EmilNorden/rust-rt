@@ -1,5 +1,6 @@
 use crate::core::Ray;
 
+#[derive(Clone)]
 struct ImagePlane {
     u: glm::Vec3,
     v: glm::Vec3,
@@ -11,6 +12,7 @@ struct ImagePlane {
     pixel_height: f32,
 }
 
+#[derive(Clone)]
 pub struct Camera {
     image_plane: ImagePlane,
     position: glm::Vec3,
