@@ -27,17 +27,25 @@ pub struct Material {
     diffuse: glm::Vec3,
     emission: glm::Vec3,
     reflectivity: f32,
+    transparent: bool,
+    refractive_index: f32,
 }
 
 impl Material {
-    pub fn new(diffuse_map: Option<Texture>, diffuse: glm::Vec3, emission: glm::Vec3, reflectivity: f32) -> Material {
+    pub fn new(diffuse_map: Option<Texture>, diffuse: glm::Vec3, emission: glm::Vec3, reflectivity: f32, transparent: bool, refractive_index: f32) -> Material {
         Material {
             diffuse_map,
             diffuse,
             emission,
-            reflectivity
+            reflectivity,
+            transparent,
+            refractive_index
         }
     }
+
+    pub fn transparent(&self) -> bool { self.transparent }
+
+    pub fn refractive_index(&self) -> f32 { self.refractive_index }
 
     pub fn reflectivity(&self) -> f32 { self.reflectivity }
 

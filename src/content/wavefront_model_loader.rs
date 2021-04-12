@@ -86,7 +86,7 @@ impl ModelLoader for WaveFrontObjectLoader
             let texture_relative_path = Path::new(x.diffuse_texture.as_str());
             let diffuse = Texture::from_file(model_root.join(texture_relative_path).to_str().unwrap());
 
-            Material::new(Some(diffuse), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0), 0.0)
+            Material::new(Some(diffuse), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 0.0, 0.0), 0.0, false, 0.0)
         }).collect();
 
         let meshes = models.into_iter().map(|x|

@@ -5,6 +5,8 @@ pub struct MaterialBuilder {
     diffuse_color: Option<glm::Vec3>,
     emissive_color: Option<glm::Vec3>,
     reflectivity: f32,
+    transparency: bool,
+    refractive_index : f32,
 }
 
 impl MaterialBuilder {
@@ -14,6 +16,8 @@ impl MaterialBuilder {
             diffuse_color: None,
             emissive_color: None,
             reflectivity: 0.0,
+            transparency: false,
+            refractive_index: 0.0
         }
     }
 
@@ -37,12 +41,20 @@ impl MaterialBuilder {
         self
     }
 
+    pub fn with_transparency(&mut self, refractive_index: f32) -> &mut MaterialBuilder {
+        self.transparency = true;
+        self.refractive_index = refractive_index;
+        self
+    }
+
     pub fn build(&self) -> Material {
         Material::new(
             self.diffuse_map.clone(),
             self.diffuse_color.unwrap_or(glm::vec3(0.0, 0.0, 0.0)),
         self.emissive_color.unwrap_or(glm::vec3(0.0, 0.0, 0.0)),
-        self.reflectivity)
+        self.reflectivity,
+        self.transparency,
+        self.refractive_index)
     }
 }
 

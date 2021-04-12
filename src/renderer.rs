@@ -19,7 +19,7 @@ pub struct ImageBuffer {
 
 struct WorkerResult {
     scanline_number: usize,
-    pixels: Vec<Color>
+    pixels: Vec<Color>,
 }
 
 #[derive(Clone)]
@@ -88,7 +88,7 @@ impl ImageBuffer {
     }
 }
 
-fn shade(scene: &Arc<dyn Scene+Sync+Send>, ray: &Ray, depth_limit: u32) -> glm::Vec3 {
+fn shade(scene: &Arc<dyn Scene + Sync + Send>, ray: &Ray, depth_limit: u32) -> glm::Vec3 {
     if depth_limit == 0 {
         return glm::vec3(0.0, 0.0, 0.0);
     }
@@ -104,6 +104,24 @@ fn shade(scene: &Arc<dyn Scene+Sync+Send>, ray: &Ray, depth_limit: u32) -> glm::
             // Collect incoming light
             // - own emission
             // - bidirectional
+
+            let mut refracted = glm::vec3(0.0, 0.0, 0.0);
+            if intersection.material().transparent() {
+                let is_entering = glm::dot(ray.direction, norm) < 0.0;
+                let mut refractive_index1 = 1.0;
+                let mut refractive_index2 = intersection.material().refractive_index();
+                if !is_entering {
+                    std::mem::swap(&mut refractive_index1, &mut refractive_index2);
+                }
+                let refracted_dir = glm::normalize(glm::refract(ray.direction, if is_entering { norm } else { norm * -1.0 }, refractive_index1 / refractive_index2));
+
+                let refracted_ray = Ray {
+                    origin: coordinate + (norm * (if is_entering { -0.1 } else { 0.1 })),
+                    direction: refracted_dir,
+                };
+
+                refracted = shade(scene, &refracted_ray, depth_limit - 1);
+            }
 
             let mut reflected = glm::vec3(0.0, 0.0, 0.0);
             if intersection.material().reflectivity() > 0.0 {
@@ -141,17 +159,20 @@ fn shade(scene: &Arc<dyn Scene+Sync+Send>, ray: &Ray, depth_limit: u32) -> glm::
                     }
                 }
             }
-            lerp(
-                *intersection.material().emission() + (diffuse * direct_light),
-                reflected,
-                intersection.material().reflectivity())
+            if intersection.material().transparent() {
+                refracted
+            } else {
+                lerp(
+                    *intersection.material().emission() + (diffuse * direct_light),
+                    reflected,
+                    intersection.material().reflectivity())
+            }
         }
     }
 }
 
-fn render_sample_thread(scene: Arc<dyn Scene+Sync+Send>, camera: Camera, render_width: usize, scanline_producer: ScanlineProducer, tx: Sender<Vec<WorkerResult>>) -> JoinHandle<()> {
+fn render_sample_thread(scene: Arc<dyn Scene + Sync + Send>, camera: Camera, render_width: usize, scanline_producer: ScanlineProducer, tx: Sender<Vec<WorkerResult>>) -> JoinHandle<()> {
     thread::spawn(move || {
-
         let mut pixels = vec![Color::black(); render_width];
         // Performance idea: use with_capacity and set it to (scanline_count / thread_count)
         // Since for a perfectly balanced workload (however unlikely) thats how many scanlines each thread
@@ -165,7 +186,12 @@ fn render_sample_thread(scene: Arc<dyn Scene+Sync+Send>, camera: Camera, render_
                     for x in 0..render_width {
                         let r = camera.cast_ray(x as usize, scanline_number);
 
-                        let color = shade(&scene, &r, 2);
+                        if x == 256 && scanline_number == 246 {
+                            let asd  = 23;
+                            //color = glm::vec3(0.0, 1.0, 0.0);
+                        }
+
+                        let color = shade(&scene, &r, 3);
 
                         // scanline[x] = Color::from_vec3(&(color * sample_importance));
                         pixels[x] = Color::from_vec3(&color);
@@ -173,7 +199,7 @@ fn render_sample_thread(scene: Arc<dyn Scene+Sync+Send>, camera: Camera, render_
 
                     results.push(WorkerResult {
                         scanline_number,
-                        pixels: pixels.clone()
+                        pixels: pixels.clone(),
                     });
                     // tx.send((scanline_number, scanline.to_vec())).unwrap();
                 }
@@ -184,7 +210,7 @@ fn render_sample_thread(scene: Arc<dyn Scene+Sync+Send>, camera: Camera, render_
     })
 }
 
-fn render_sample(scene: &Arc<dyn Scene+Sync+Send>, camera: &Camera, resolution: &glm::Vector2<u32>, rng: &mut StdRng, image: &mut ImageBuffer, sample_importance: f32) {
+fn render_sample(scene: &Arc<dyn Scene + Sync + Send>, camera: &Camera, resolution: &glm::Vector2<u32>, rng: &mut StdRng, image: &mut ImageBuffer, sample_importance: f32) {
     let now = Instant::now();
     let sp = ScanlineProducer::new(resolution.y as usize);
 
@@ -205,7 +231,6 @@ fn render_sample(scene: &Arc<dyn Scene+Sync+Send>, camera: &Camera, resolution: 
                 image.add_pixel(x, scanline.scanline_number, scanline.pixels[x].clone());
             }
         }
-
     }
 
     for thread in threads {
@@ -228,7 +253,7 @@ fn render_sample(scene: &Arc<dyn Scene+Sync+Send>, camera: &Camera, resolution: 
     println!("Render time: {}ms", now.elapsed().as_millis());*/
 }
 
-pub fn render(scene: &Arc<dyn Scene+Sync+Send>, camera: &Camera, resolution: &glm::Vector2<u32>, rng: &mut StdRng) -> ImageBuffer {
+pub fn render(scene: &Arc<dyn Scene + Sync + Send>, camera: &Camera, resolution: &glm::Vector2<u32>, rng: &mut StdRng) -> ImageBuffer {
     let mut image = ImageBuffer::new(resolution.x as usize, resolution.y as usize);
 
     let nsamples = 1;

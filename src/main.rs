@@ -86,7 +86,7 @@ fn main() {
     light.set_scale(glm::vec3(0.01, 0.01, 0.01));*/
 
 
-    let mut angle = 0.0;
+    let mut angle = 3.1415;
    let mut event_pump = sdl.event_pump().unwrap();
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -135,7 +135,8 @@ fn main() {
                 1.0,
                 MaterialBuilder::new()
                     .with_diffuse_color(glm::vec3(0.5, 0.5, 1.0))
-                    .with_reflectivity(1.0)
+                    .with_transparency(1.69)
+                    //.with_reflectivity(1.0)
                     .build(),
                 TransformBuilder::new()
                     .with_translation(glm::vec3(glm::sin(angle) * 3.0, 2.0, glm::cos(angle)*3.0))
@@ -175,6 +176,8 @@ fn main() {
         texture.bind();
         window.render();
         window.swap();
+
+        println!("angle {}", angle);
 
         angle += 0.1;
     }
