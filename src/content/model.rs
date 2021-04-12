@@ -1,7 +1,6 @@
 use crate::content::octree_mesh::OctreeMesh;
 use crate::content::material::Material;
 use crate::core::geom::AABB;
-use crate::core::{Intersection, Ray};
 use std::rc::Rc;
 use std::collections::HashMap;
 

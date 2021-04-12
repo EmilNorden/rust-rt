@@ -1,4 +1,4 @@
-use crate::scene::{Scene, ThreadSafeScene};
+use crate::scene::{Scene};
 use crate::camera::Camera;
 use crate::core::{Ray, Intersection};
 use rand::rngs::StdRng;

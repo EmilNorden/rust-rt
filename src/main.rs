@@ -14,21 +14,16 @@ mod frame_interpolator;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use crate::gl_texture::GlTexture;
-use crate::scene::{Intersectable, SceneEntity, Scene, ThreadSafeScene};
+use crate::scene::{SceneEntity, Scene };
 use crate::content::wavefront_model_loader::{WaveFrontObjectLoader};
-use std::cell::RefCell;
 use std::sync::Arc;
-use crate::render_configuration::{RenderConfiguration};
 use crate::content::store::ModelStore;
-use std::f32::consts::PI;
-use crate::content::material::Material;
 use crate::scene::sphere_entity::SphereEntity;
 use std::fs::File;
-use serde_json::Value;
 use crate::render_configuration::parser::parse;
 use crate::frame_interpolator::FrameInterpolator;
 use crate::camera::Camera;
-use crate::renderer::{render, ImageBuffer};
+use crate::renderer::{render};
 use rand::SeedableRng;
 use crate::content::material_builder::MaterialBuilder;
 use crate::scene::transform_builder::TransformBuilder;
@@ -48,7 +43,7 @@ fn main() {
     let window = window::Window::create(&sdl).unwrap();
 
     let loader = WaveFrontObjectLoader {};
-    let mut store = ModelStore::new(Box::new(loader));
+    let mut _store = ModelStore::new(Box::new(loader));
     // let args = std::env::args();
     // Input path should be taken from args
     //let mut config = ConfigurationParser{}.parse("/Users/emil/code/rust-rt/src/test.json");
