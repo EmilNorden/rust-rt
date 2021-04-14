@@ -1,4 +1,4 @@
-use crate::scene::{Intersectable, Renderable, SceneEntity};
+use crate::scene::{Intersectable, Renderable, SceneEntity, SurfaceDescription};
 use crate::core::{Intersection, Ray};
 use crate::core::geom::AABB;
 use glm::{Vec2, Vec3};
@@ -24,12 +24,8 @@ impl Intersection for SphereIntersection<'_> {
         self.world_space_hit_point
     }
 
-    fn object_space_normal(&self) -> glm::Vec4 {
-        self.object_space_normal
-    }
-
     fn world_space_normal(&self) -> Vec3 {
-        let tmp = *self.transform.world() * self.object_space_normal();
+        let tmp = *self.transform.world() * self.object_space_normal;
         glm::vec3(tmp.x, tmp.y, tmp.z)
     }
 
@@ -64,6 +60,7 @@ impl Intersection for SphereIntersection<'_> {
 
 pub struct SphereEntity {
     entity_id: u32,
+    radius: f32,
     squared_radius: f32,
     bounds: AABB,
     material: Material,
@@ -80,7 +77,8 @@ impl SphereEntity {
 
         SphereEntity {
             entity_id: id,
-            squared_radius: radius*radius,
+            radius,
+            squared_radius: radius * radius,
             bounds,
             material,
             transform,
@@ -97,7 +95,7 @@ impl SphereEntity {
 
     fn intersect_object_space_ray(&self, object_space_ray: &Ray) -> Option<f32> {
         // let oc = world_ray.origin - self.position;
-        let L =  glm::vec3(0.0, 0.0, 0.0) - object_space_ray.origin;
+        let L = glm::vec3(0.0, 0.0, 0.0) - object_space_ray.origin;
         let tca = glm::dot(L, object_space_ray.direction);
 
         // If sphere is behind ray
@@ -137,6 +135,23 @@ impl Renderable for SphereEntity {
         !self.material.emission().is_zero()
     }
 
+    fn get_random_emissive_surface(&self, rng: &mut StdRng) -> SurfaceDescription {
+        let point_on_unit_sphere = glm::vec3(
+            rng.gen::<f32>() * 2.0 - 1.0,
+            rng.gen::<f32>() * 2.0 - 1.0,
+            rng.gen::<f32>() * 2.0 - 1.0);
+        let surface_normal = *self.transform.world() * point_on_unit_sphere.extend(0.0);
+
+        let coordinate = *self.transform.world() * (point_on_unit_sphere * self.radius).extend(1.0);
+
+        SurfaceDescription {
+            emission: *self.material.emission(),
+            coordinate: coordinate.truncate(3),
+            world_normal: surface_normal.truncate(3),
+            entity_id: self.entity_id,
+        }
+    }
+
     /*fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_> {
         let random_point = glm::normalize(glm::vec3(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>())
             - glm::vec3(0.5, 0.5, 0.5)) * self.radius;
@@ -154,7 +169,6 @@ impl Renderable for SphereEntity {
 
 impl Intersectable for SphereEntity {
     fn intersect(&self, world_ray: &Ray) -> Option<Box<dyn Intersection + '_>> {
-
         let object_ray = world_ray.transform(&self.transform.inverse_world());
 
         if let Some(object_space_distance) = self.intersect_object_space_ray(&object_ray) {
@@ -201,7 +215,7 @@ mod tests {
 
         let ray = Ray {
             origin: glm::vec3(0.0, 0.0, 2.0),
-            direction: glm::vec3(0.0, 0.0, -1.0)
+            direction: glm::vec3(0.0, 0.0, -1.0),
         };
 
         let result = sphere.intersect_object_space_ray(&ray);
@@ -215,7 +229,7 @@ mod tests {
 
         let ray = Ray {
             origin: glm::vec3(0.0, 0.0, 2.0),
-            direction: glm::vec3(0.0, 0.0, 1.0)
+            direction: glm::vec3(0.0, 0.0, 1.0),
         };
 
         let result = sphere.intersect_object_space_ray(&ray);
@@ -229,7 +243,7 @@ mod tests {
 
         let ray = Ray {
             origin: glm::vec3(0.0, 0.0, 0.9),
-            direction: glm::vec3(0.0, 0.0, 1.0)
+            direction: glm::vec3(0.0, 0.0, 1.0),
         };
 
         let result = sphere.intersect_object_space_ray(&ray);

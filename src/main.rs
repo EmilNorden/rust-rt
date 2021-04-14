@@ -14,7 +14,7 @@ mod frame_interpolator;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use crate::gl_texture::GlTexture;
-use crate::scene::{SceneEntity, Scene };
+use crate::scene::{SceneEntity, Scene};
 use crate::content::wavefront_model_loader::{WaveFrontObjectLoader};
 use std::sync::Arc;
 use crate::content::store::ModelStore;
@@ -27,6 +27,8 @@ use crate::renderer::{render};
 use rand::SeedableRng;
 use crate::content::material_builder::MaterialBuilder;
 use crate::scene::transform_builder::TransformBuilder;
+use crate::scene::plane_entity::PlaneEntity;
+use crate::core::plane::Plane;
 
 mod content;
 mod renderer;
@@ -36,6 +38,11 @@ mod render_configuration;
 mod frame_processor;
 mod camera;
 mod color;
+
+fn next_id(id: &mut u32) -> u32 {
+    *id = *id + 1;
+    *id
+}
 
 fn main() {
     let mut rng = rand::rngs::StdRng::seed_from_u64(123);
@@ -81,8 +88,9 @@ fn main() {
     light.set_scale(glm::vec3(0.01, 0.01, 0.01));*/
 
 
-    let mut angle = 3.1415;
-   let mut event_pump = sdl.event_pump().unwrap();
+    let mut angle = 3.1415 + 0.8;
+    let mut bob = 0.0f32;
+    let mut event_pump = sdl.event_pump().unwrap();
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -94,68 +102,54 @@ fn main() {
             }
         }
 
-        let entities: Vec<Box<dyn SceneEntity+Sync+Send>> = vec![
+        let mut id = 0;
+        let entities: Vec<Box<dyn SceneEntity + Sync + Send>> = vec![
             // Floor
-            Box::new(SphereEntity::new(
-                0,
-                /*glm::vec3(0.0, -1000.0, 0.0),
-                glm::vec3(0.0, 0.0, 0.0),
-                glm::vec3(1.0, 1.0, 1.0),*/
+            Box::new(PlaneEntity::new(
+                next_id(&mut id),
+                Plane::new(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0)),
                 10.0,
                 MaterialBuilder::new()
-                    .with_diffuse_color(glm::vec3(1.0, 0.1, 0.1))
-                    .build(),
-                TransformBuilder::new()
-                    .with_translation(glm::vec3(0.0, -10.0, 0.0))
-                    .with_scale(glm::vec3(10.0, 1.0, 10.0))
-                    .build(),
-            )),
-
-            // Sun
-            Box::new(SphereEntity::new(
-                1,
-                10.0,
-                MaterialBuilder::new()
-                    .with_emissive_color(glm::vec3(1.0, 1.0, 1.0))
                     .with_diffuse_color(glm::vec3(1.0, 1.0, 1.0))
                     .build(),
                 TransformBuilder::new()
-                    .with_translation(glm::vec3(0.0, 20.0, 0.0))
                     .build(),
             )),
 
             // Diffuse ball
             Box::new(SphereEntity::new(
-                3,
+                next_id(&mut id),
                 1.0,
                 MaterialBuilder::new()
                     .with_diffuse_color(glm::vec3(0.5, 0.5, 1.0))
-                    .with_transparency(1.69)
-                    //.with_reflectivity(1.0)
+                    // .with_transparency(1.69)
+                    // .with_reflectivity(1.0)
                     .build(),
                 TransformBuilder::new()
-                    .with_translation(glm::vec3(glm::sin(angle) * 3.0, 2.0, glm::cos(angle)*3.0))
-                    .build()
+                    .with_translation(glm::vec3(glm::sin(angle) * 3.0, 3.0 + glm::sin(bob), glm::cos(angle) * 3.0))
+                    .build(),
             )),
 
             // Diffuse ball
             Box::new(SphereEntity::new(
-                2,
+                next_id(&mut id),
                 1.0,
                 MaterialBuilder::new()
                     .with_diffuse_color(glm::vec3(0.5, 0.5, 1.0))
+                    .with_emissive_color(glm::vec3(1.0, 1.0, 1.0))
                     .build(),
                 TransformBuilder::new()
-                    .with_translation(glm::vec3(0.0, 2.0, 0.0))
+                    .with_translation(glm::vec3(0.0, 3.0, 0.0))
                     .build(),
             )),
         ];
-
-        let scene2: Arc<dyn Scene+Sync+Send> = Arc::new(scene::octree_scene::Octree::create(entities, 4));
+        let scene2: Arc<dyn Scene + Sync + Send> = Arc::new(scene::octree_scene::Octree::create(entities, 4));
 
         let mut camera = Camera::new();
-        camera.set_position(glm::Vector3::new(0.0, 2.5, -15.0));
-        camera.set_direction(glm::Vector3::new(0.0, 0.0, 1.0));
+        let camera_position = glm::vec3(0.0, 2.5, -15.0) * 1.0;
+        let camera_target = glm::vec3(0.0, 0.0, 0.0);
+        camera.set_position(camera_position);
+        camera.set_direction(glm::normalize(camera_target - camera_position));
         camera.set_resolution(glm::Vector2::new(window.width(), window.height()));
 
         let mut pixels = vec![0u8; (window.width() * window.height() * 3) as usize];
@@ -163,17 +157,23 @@ fn main() {
         texture.bind();
 
         camera.update();
-        let image = render(&scene2, &camera, &glm::Vector2::<u32>::new(window.width(), window.height()), &mut rng);
+        let image = render(
+            &scene2,
+            &camera,
+            &glm::Vector2::<u32>::new(window.width(), window.height()),
+            2,
+            &mut rng);
 
 
         window.clear();
-        texture.set_pixels(window.width(), window.height(), image.pixels());
+        texture.set_pixels(window.width(), window.height(), &image.pixels_u8());
         texture.bind();
         window.render();
         window.swap();
 
         println!("angle {}", angle);
 
-        angle += 0.1;
+        //angle += 0.1;
+        bob += 0.1;
     }
 }

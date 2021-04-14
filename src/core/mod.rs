@@ -3,10 +3,10 @@ use crate::content::material::Material;
 
 pub mod geom;
 pub mod math;
+pub mod plane;
 
 pub trait Intersection {
     fn coordinate(&self) -> glm::Vec3;
-    fn object_space_normal(&self) -> glm::Vec4;
     fn world_space_normal(&self) -> glm::Vec3;
     fn texture_coordinates(&self) -> glm::Vec2;
     fn material(&self) -> &Material;

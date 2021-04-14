@@ -1,4 +1,4 @@
-use crate::scene::{Scene};
+use crate::scene::{Scene, SurfaceDescription};
 use crate::camera::Camera;
 use crate::core::{Ray, Intersection};
 use rand::rngs::StdRng;
@@ -10,16 +10,18 @@ use std::thread;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use std::time::Instant;
+use rand::{RngCore, SeedableRng, Rng};
+use rand::seq::index::sample;
 
 pub struct ImageBuffer {
-    pixels: Vec<u8>,
+    pixels: Vec<f32>,
     width: usize,
     height: usize,
 }
 
 struct WorkerResult {
     scanline_number: usize,
-    pixels: Vec<Color>,
+    pixels: Vec<glm::Vec3>,
 }
 
 #[derive(Clone)]
@@ -48,47 +50,53 @@ impl ScanlineProducer {
 }
 
 impl ImageBuffer {
-    const BYTES_PER_PIXEL: usize = 3;
+    const COMPONENTS_PER_PIXEL: usize = 3;
 
     pub fn new(width: usize, height: usize) -> Self {
         ImageBuffer {
-            pixels: vec![0u8; width * height * ImageBuffer::BYTES_PER_PIXEL],
+            pixels: vec![0.0f32; width * height * ImageBuffer::COMPONENTS_PER_PIXEL],
             width,
             height,
         }
     }
 
-    pub fn pixels(&self) -> &Vec<u8> {
+    pub fn pixels(&self) -> &Vec<f32> {
         &self.pixels
     }
 
-    #[inline(always)]
-    pub fn add_pixel(&mut self, x: usize, y: usize, color: Color) {
-        debug_assert!(x < self.width);
-        debug_assert!(y < self.height);
+    pub fn pixels_u8(&self) -> Vec<u8> {
+        let mut result = vec![0u8; self.width * self.height * ImageBuffer::COMPONENTS_PER_PIXEL];
+        for offset in 0..(self.width * self.height * ImageBuffer::COMPONENTS_PER_PIXEL) {
+            result[offset] = (self.pixels[offset] * 255.0) as u8;
+        }
 
-        let pixel_offset = y * self.width * ImageBuffer::BYTES_PER_PIXEL + (x * ImageBuffer::BYTES_PER_PIXEL);
-        self.pixels[pixel_offset] += color.r;
-        self.pixels[pixel_offset + 1] += color.g;
-        self.pixels[pixel_offset + 2] += color.b;
+        result
     }
 
     #[inline(always)]
-    pub fn pixel(&self, x: usize, y: usize) -> Color {
+    pub fn add_pixel(&mut self, x: usize, y: usize, color: glm::Vec3) {
         debug_assert!(x < self.width);
         debug_assert!(y < self.height);
 
-        let pixel_offset = y * self.width * ImageBuffer::BYTES_PER_PIXEL + (x * ImageBuffer::BYTES_PER_PIXEL);
+        let pixel_offset = y * self.width * ImageBuffer::COMPONENTS_PER_PIXEL + (x * ImageBuffer::COMPONENTS_PER_PIXEL);
 
-        Color {
-            r: self.pixels[pixel_offset],
-            g: self.pixels[pixel_offset + 1],
-            b: self.pixels[pixel_offset + 2],
-        }
+        self.pixels[pixel_offset] += color.x;
+        self.pixels[pixel_offset + 1] += color.y;
+        self.pixels[pixel_offset + 2] += color.z;
+    }
+
+    #[inline(always)]
+    pub fn pixel(&self, x: usize, y: usize) -> glm::Vec3 {
+        debug_assert!(x < self.width);
+        debug_assert!(y < self.height);
+
+        let pixel_offset = y * self.width * ImageBuffer::COMPONENTS_PER_PIXEL + (x * ImageBuffer::COMPONENTS_PER_PIXEL);
+
+        glm::vec3(self.pixels[pixel_offset], self.pixels[pixel_offset + 1], self.pixels[pixel_offset + 2])
     }
 }
 
-fn shade(scene: &Arc<dyn Scene + Sync + Send>, ray: &Ray, depth_limit: u32) -> glm::Vec3 {
+fn shade(scene: &Arc<dyn Scene + Sync + Send>, ray: &Ray, light: &SurfaceDescription, depth_limit: u32) -> glm::Vec3 {
     if depth_limit == 0 {
         return glm::vec3(0.0, 0.0, 0.0);
     }
@@ -120,7 +128,7 @@ fn shade(scene: &Arc<dyn Scene + Sync + Send>, ray: &Ray, depth_limit: u32) -> g
                     direction: refracted_dir,
                 };
 
-                refracted = shade(scene, &refracted_ray, depth_limit - 1);
+                refracted = shade(scene, &refracted_ray, light, depth_limit - 1);
             }
 
             let mut reflected = glm::vec3(0.0, 0.0, 0.0);
@@ -133,16 +141,33 @@ fn shade(scene: &Arc<dyn Scene + Sync + Send>, ray: &Ray, depth_limit: u32) -> g
                     direction: reflected_dir,
                 };
 
-                reflected = shade(scene, &reflected_ray, depth_limit - 1);
+                reflected = shade(scene, &reflected_ray, light, depth_limit - 1);
             }
 
             let mut diffuse = intersection.material().sample_diffuse(&intersection.texture_coordinates());
             let mut direct_light = glm::vec3(0.0, 0.0, 0.0);
-            for light in scene.get_emissive_entities() {
-                if intersection.entity_id() == 1 {
-                    let ff = 2323;
-                }
 
+            let new_origin = coordinate + (norm * 0.1);
+            let shadow_ray = Ray {
+                origin: new_origin,
+                direction: glm::normalize(light.coordinate - new_origin),
+            };
+
+            if intersection.entity_id() != light.entity_id {
+                if let Some(light_intersection) = scene.find_intersection(&shadow_ray) {
+                    let coo = light_intersection.coordinate();
+                    if coordinate.x < 3.0 && intersection.entity_id() == 1 && light_intersection.entity_id() == intersection.entity_id() {
+                        let fsdf = 34;
+                    }
+                    if light_intersection.entity_id() == light.entity_id {
+                        // TODO: Should check that collision is close to light.coordinate too!!
+                        direct_light = direct_light + *light_intersection.material().emission();
+                    }
+                }
+            }
+
+
+            /*for light in scene.get_emissive_entities() {
                 let new_origin = coordinate + (norm * 0.1);
                 let shadow_ray = Ray {
                     origin: new_origin,
@@ -158,7 +183,7 @@ fn shade(scene: &Arc<dyn Scene + Sync + Send>, ray: &Ray, depth_limit: u32) -> g
                         direct_light = direct_light + *light_intersection.material().emission();
                     }
                 }
-            }
+            }*/
             if intersection.material().transparent() {
                 refracted
             } else {
@@ -171,9 +196,9 @@ fn shade(scene: &Arc<dyn Scene + Sync + Send>, ray: &Ray, depth_limit: u32) -> g
     }
 }
 
-fn render_sample_thread(scene: Arc<dyn Scene + Sync + Send>, camera: Camera, render_width: usize, scanline_producer: ScanlineProducer, tx: Sender<Vec<WorkerResult>>) -> JoinHandle<()> {
+fn render_sample_thread(scene: Arc<dyn Scene + Sync + Send>, camera: Camera, render_width: usize, scanline_producer: ScanlineProducer, mut rng: StdRng, tx: Sender<Vec<WorkerResult>>) -> JoinHandle<()> {
     thread::spawn(move || {
-        let mut pixels = vec![Color::black(); render_width];
+        let mut pixels = vec![glm::vec3(0.0, 0.0, 0.0); render_width];
         // Performance idea: use with_capacity and set it to (scanline_count / thread_count)
         // Since for a perfectly balanced workload (however unlikely) thats how many scanlines each thread
         // will render.
@@ -184,24 +209,36 @@ fn render_sample_thread(scene: Arc<dyn Scene + Sync + Send>, camera: Camera, ren
                 None => break,
                 Some(scanline_number) => {
                     for x in 0..render_width {
+                        if x == 256 && scanline_number == 256 {
+                            let asd = 321;
+                        }
                         let r = camera.cast_ray(x as usize, scanline_number);
 
-                        if x == 256 && scanline_number == 246 {
-                            let asd  = 23;
-                            //color = glm::vec3(0.0, 1.0, 0.0);
+                        let emissive_entities = scene.get_emissive_entities();
+                        let emissive_surface = if emissive_entities.is_empty() {
+                            SurfaceDescription {
+                                coordinate: glm::vec3(0.0, 20.0, 0.0),
+                                world_normal: glm::vec3(0.0, -1.0, 0.0),
+                                emission: glm::vec3(1.0, 1.0, 1.0),
+                                entity_id: 999
+                            }
                         }
+                        else {
+                            let random_emissive_entity =
+                                emissive_entities[rng.gen_range(0..emissive_entities.len())];
 
-                        let color = shade(&scene, &r, 3);
+                            random_emissive_entity.get_random_emissive_surface(&mut rng)
+                        };
 
-                        // scanline[x] = Color::from_vec3(&(color * sample_importance));
-                        pixels[x] = Color::from_vec3(&color);
+
+
+                        pixels[x] = shade(&scene, &r, &emissive_surface, 3);
                     }
 
                     results.push(WorkerResult {
                         scanline_number,
                         pixels: pixels.clone(),
                     });
-                    // tx.send((scanline_number, scanline.to_vec())).unwrap();
                 }
             }
         }
@@ -216,8 +253,10 @@ fn render_sample(scene: &Arc<dyn Scene + Sync + Send>, camera: &Camera, resoluti
 
     let (tx, rx) = std::sync::mpsc::channel();
     let mut threads = Vec::new();
-    for i in 0..4 {
-        threads.push(render_sample_thread(scene.clone(), camera.clone(), resolution.x as usize, sp.clone(), tx.clone()));
+    let thread_count = 1;
+    for i in 0..thread_count {
+        let thread_rng = rand::rngs::StdRng::seed_from_u64(rng.next_u64());
+        threads.push(render_sample_thread(scene.clone(), camera.clone(), resolution.x as usize, sp.clone(), thread_rng, tx.clone()));
     }
 
     // Once all senders (tx) have closed the receiver (rx) will close.
@@ -228,7 +267,7 @@ fn render_sample(scene: &Arc<dyn Scene + Sync + Send>, camera: &Camera, resoluti
     for worker_results in rx {
         for scanline in worker_results {
             for x in 0..resolution.x as usize {
-                image.add_pixel(x, scanline.scanline_number, scanline.pixels[x].clone());
+                image.add_pixel(x, scanline.scanline_number, scanline.pixels[x].clone() * sample_importance);
             }
         }
     }
@@ -253,10 +292,9 @@ fn render_sample(scene: &Arc<dyn Scene + Sync + Send>, camera: &Camera, resoluti
     println!("Render time: {}ms", now.elapsed().as_millis());*/
 }
 
-pub fn render(scene: &Arc<dyn Scene + Sync + Send>, camera: &Camera, resolution: &glm::Vector2<u32>, rng: &mut StdRng) -> ImageBuffer {
+pub fn render(scene: &Arc<dyn Scene + Sync + Send>, camera: &Camera, resolution: &glm::Vector2<u32>, nsamples: u32, rng: &mut StdRng) -> ImageBuffer {
     let mut image = ImageBuffer::new(resolution.x as usize, resolution.y as usize);
 
-    let nsamples = 1;
     for sample in 0..nsamples {
         println!("sample {} of {}", sample + 1, nsamples);
         render_sample(scene, camera, resolution, rng, &mut image, 1.0 / nsamples as f32);

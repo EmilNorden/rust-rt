@@ -14,6 +14,7 @@ pub mod sphere_entity;
 pub mod mesh_entity;
 pub mod transform;
 pub mod transform_builder;
+pub mod plane_entity;
 
 pub trait Intersectable {
     fn intersect<'a >(&'a self, world_ray: &Ray) -> Option<Box<dyn Intersection + 'a>>;
@@ -22,8 +23,16 @@ pub trait Intersectable {
     fn transform(&self) -> &Transform;
 }
 
+pub struct SurfaceDescription {
+    pub coordinate: glm::Vec3,
+    pub world_normal: glm::Vec3,
+    pub emission: glm::Vec3,
+    pub entity_id: u32,
+}
+
 pub trait Renderable {
     fn is_emissive(&self) -> bool;
+    fn get_random_emissive_surface(&self, rng: &mut StdRng) -> SurfaceDescription;
     // fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_>;
 }
 

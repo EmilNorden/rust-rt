@@ -1,6 +1,8 @@
 use super::*;
 use std::fmt::Display;
 use serde::export::Formatter;
+use float_cmp::{F32Margin, ApproxEq};
+use crate::core::plane::Plane;
 
 #[derive(Clone)]
 pub struct AABB {
@@ -60,7 +62,7 @@ impl AABB {
         self.max - self.min
     }
 
-    pub fn combine(first: &AABB, second: &AABB) -> AABB{
+    pub fn combine(first: &AABB, second: &AABB) -> AABB {
         let mut result = first.clone();
         result.expand(second);
 
@@ -104,6 +106,28 @@ impl AABB {
             min: smallest,
             max: largest,
         }
+    }
+
+    pub fn from_plane(plane: &Plane, horizontal_extent: f32, vertical_extent: f32) -> AABB {
+        // Since a plane by definition extends infinitely,
+        // this will create a bounding box around the plane
+        // as defined by the 'horizontal_extent' and 'vertical_extent' parameters
+        let origin = plane.origin();
+        let normal = plane.normal();
+        let u = plane.u();
+        let v = plane.v();
+        let vertices = vec![
+            origin + (u * horizontal_extent),
+            origin - (u * horizontal_extent),
+            origin + (v * horizontal_extent),
+            origin - (v * horizontal_extent),
+            origin + (u * horizontal_extent) + (normal * vertical_extent),
+            origin - (u * horizontal_extent) + (normal * vertical_extent),
+            origin + (v * horizontal_extent) + (normal * vertical_extent),
+            origin - (v * horizontal_extent) + (normal * vertical_extent)
+        ];
+
+        AABB::from_vector3(&vertices)
     }
 
     pub fn transform(&self, mat: &glm::Mat4) -> AABB {
@@ -301,6 +325,28 @@ mod tests {
 
         assert_identical_vectors(&result.min, &glm::Vector3::new(-40.0, -20.0, -20.0));
         assert_identical_vectors(&result.max, &glm::Vector3::new(40.0, 20.0, 20.0));
+    }
+
+    #[test]
+    fn aabb_from_plane_should_handle_upward_facing_plane() {
+        let result = AABB::from_plane(
+            &Plane::new(glm::vec3(10.0, 0.0, 20.0), glm::vec3(0.0, 1.0, 0.0)),
+            10.0,
+            1.0);
+
+        assert_identical_vectors(&result.min, &glm::vec3(0.0, 0.0, 10.0));
+        assert_identical_vectors(&result.max, &glm::vec3(20.0, 1.0, 30.0));
+    }
+
+    #[test]
+    fn aabb_from_plane_should_handle_non_axis_aligned_plane() {
+        let result = AABB::from_plane(
+            &Plane::new(glm::vec3(0.0, 0.0, 0.0), glm::normalize(glm::vec3(1.0, 1.0, 0.0))),
+            10.0,
+            1.0);
+
+        assert_identical_vectors(&result.min, &glm::vec3(-7.071068, -7.071068, -9.999999));
+        assert_identical_vectors(&result.max, &glm::vec3(7.7781744, 7.7781744, 9.99999904));
     }
 
     #[test]
