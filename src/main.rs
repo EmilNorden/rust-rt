@@ -108,7 +108,6 @@ fn main() {
             Box::new(PlaneEntity::new(
                 next_id(&mut id),
                 Plane::new(glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0)),
-                10.0,
                 MaterialBuilder::new()
                     .with_diffuse_color(glm::vec3(1.0, 1.0, 1.0))
                     .build(),
@@ -116,8 +115,41 @@ fn main() {
                     .build(),
             )),
 
+            // Back wall
+            Box::new(PlaneEntity::new(
+                next_id(&mut id),
+                Plane::new(glm::vec3(0.0, 10.0, 10.0), glm::vec3(0.0, 0.0, -1.0)),
+                MaterialBuilder::new()
+                    .with_diffuse_color(glm::vec3(1.0, 0.5, 0.5))
+                    .build(),
+                TransformBuilder::new()
+                    .build(),
+            )),
+
+            // Left wall
+            Box::new(PlaneEntity::new(
+                next_id(&mut id),
+                Plane::new(glm::vec3(-10.0, 10.0, 0.0), glm::vec3(1.0, 0.0, 0.0)),
+                MaterialBuilder::new()
+                    .with_diffuse_color(glm::vec3(0.5, 1.0, 0.5))
+                    .build(),
+                TransformBuilder::new()
+                    .build(),
+            )),
+
+            // Right wall
+            Box::new(PlaneEntity::new(
+                next_id(&mut id),
+                Plane::new(glm::vec3(10.0, 10.0, 0.0), glm::vec3(-1.0, 0.0, 0.0)),
+                MaterialBuilder::new()
+                    .with_diffuse_color(glm::vec3(0.5, 0.5, 1.0))
+                    .build(),
+                TransformBuilder::new()
+                    .build(),
+            )),
+
             // Diffuse ball
-            Box::new(SphereEntity::new(
+            /*Box::new(SphereEntity::new(
                 next_id(&mut id),
                 1.0,
                 MaterialBuilder::new()
@@ -128,10 +160,10 @@ fn main() {
                 TransformBuilder::new()
                     .with_translation(glm::vec3(glm::sin(angle) * 3.0, 3.0 + glm::sin(bob), glm::cos(angle) * 3.0))
                     .build(),
-            )),
+            )),*/
 
             // Diffuse ball
-            Box::new(SphereEntity::new(
+            /*Box::new(SphereEntity::new(
                 next_id(&mut id),
                 1.0,
                 MaterialBuilder::new()
@@ -141,7 +173,7 @@ fn main() {
                 TransformBuilder::new()
                     .with_translation(glm::vec3(0.0, 3.0, 0.0))
                     .build(),
-            )),
+            )),*/
         ];
         let scene2: Arc<dyn Scene + Sync + Send> = Arc::new(scene::octree_scene::Octree::create(entities, 4));
 
@@ -161,7 +193,7 @@ fn main() {
             &scene2,
             &camera,
             &glm::Vector2::<u32>::new(window.width(), window.height()),
-            2,
+            1,
             &mut rng);
 
 

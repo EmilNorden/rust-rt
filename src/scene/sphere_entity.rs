@@ -190,8 +190,8 @@ impl Intersectable for SphereEntity {
         None
     }
 
-    fn bounds(&self) -> &AABB {
-        &self.bounds
+    fn bounds(&self) -> Option<&AABB> {
+        Some(&self.bounds)
     }
 
     fn entity_id(&self) -> u32 {

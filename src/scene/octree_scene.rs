@@ -1,4 +1,3 @@
-
 use crate::core::geom::{AABB, ray_aabb_intersect};
 use crate::core::{Intersection, Ray};
 use crate::scene::{Scene, SceneEntity};
@@ -14,7 +13,8 @@ struct OctantId { pub id: usize }
 struct EntityId { pub id: usize }
 
 pub struct Octree {
-    entities: Vec<Box<dyn SceneEntity+Sync+Send>>,
+    entities: Vec<Box<dyn SceneEntity + Sync + Send>>,
+    boundless_entities: Vec<Box<dyn SceneEntity + Sync + Send>>,
     octants: Vec<Octant>,
 }
 
@@ -26,7 +26,45 @@ struct Octant {
 
 impl Scene for Octree {
     fn find_intersection(&self, ray: &Ray) -> Option<Box<dyn Intersection + '_>> {
-        self.trace_octant(ray, &OctantId { id: 0 })
+        // self.trace_octant(ray, &OctantId { id: 0 })
+
+        let octree_result = self.trace_octant(ray, &OctantId { id: 0 });
+
+        let mut best_result: Option<Box<dyn Intersection>> = None;
+        let mut best_distance = std::f32::MAX;
+        for x in &self.boundless_entities {
+            if let Some(intersection) = x.intersect(ray) {
+                if best_result.is_none() {
+                    best_result = Some(intersection);
+                } else if best_distance > intersection.distance() {
+                    best_distance = intersection.distance();
+                    best_result = Some(intersection);
+                }
+            }
+        }
+
+        if octree_result.is_none() ||  best_distance < octree_result.as_ref().unwrap().distance() {
+            best_result
+        } else {
+            octree_result
+        }
+        // octree_result
+
+        /*let mut best_result: Option<Box<dyn Intersection>> = None;
+        let mut best_distance = std::f32::MAX;
+        for x in &self.boundless_entities {
+            if let Some(intersection) = x.intersect(ray) {
+                if best_result.is_none() {
+                    best_distance = intersection.distance();
+                    best_result = Some(intersection);
+                } else if intersection.distance() < best_distance {
+                    best_distance = intersection.distance();
+                    best_result = Some(intersection);
+                }
+            }
+        }
+
+        best_result*/
     }
 
     /*fn get_random_emissive_surface(&self, rng: &mut StdRng) -> Box<dyn Intersection + '_> {
@@ -40,7 +78,7 @@ impl Scene for Octree {
         random_entity.get_random_emissive_surface(rng)
     }*/
 
-    fn get_emissive_entities(&self) -> Vec<&Box<dyn SceneEntity+Sync+Send>> {
+    fn get_emissive_entities(&self) -> Vec<&Box<dyn SceneEntity + Sync + Send>> {
         self.entities.iter().filter(|x| x.is_emissive()).collect()
     }
 }
@@ -54,7 +92,6 @@ impl Octree {
         }
 
         if octant.children.len() == 0 {
-
             let mut best_distance = std::f32::MAX;
             for x in &octant.entities {
                 // let transformed_ray = ray.transform(&self.entities[x.id].inverse_transform);
@@ -83,24 +120,46 @@ impl Octree {
     }
 
     pub fn trace(&self, ray: &Ray) -> Option<Box<dyn Intersection + '_>> {
-        self.trace_octant(ray, &OctantId { id: 0 })
+        let octree_result = self.trace_octant(ray, &OctantId { id: 0 });
+
+        let mut best_result: Option<Box<dyn Intersection>> = None;
+        let mut best_distance = std::f32::MAX;
+        for x in &self.boundless_entities {
+            if let Some(intersection) = x.intersect(ray) {
+                if best_result.is_none() {
+                    best_result = Some(intersection);
+                } else if best_distance > intersection.distance() {
+                    best_distance = intersection.distance();
+                    best_result = Some(intersection);
+                }
+            }
+        }
+
+        if best_distance < octree_result.as_ref().unwrap().distance() {
+            best_result
+        } else {
+            octree_result
+        }
     }
 
-    pub fn create(entities: Vec<Box<dyn SceneEntity+Sync+Send>>, depth_limit: usize) -> Octree {
-        // let bounds = AABB::from_bounds(&entities.iter().map(|x| x.model.bounds().transform(&glm::inverse(&x.inverse_transform))));
-        let bounds = AABB::from_bounds(&entities.iter().map(|x| x.bounds().clone()));
+    pub fn create(mut entities: Vec<Box<dyn SceneEntity + Sync + Send>>, depth_limit: usize) -> Octree {
+        let boundless_entities: Vec<Box<dyn SceneEntity + Sync + Send>> = entities
+            .drain_filter(|x| x.bounds().is_none())
+            .collect();
+
+        let bounds = AABB::from_bounds(&entities.iter().map(|x| x.bounds().unwrap().clone()));
 
         let root = Octant {
             entities: (0..entities.len()).map(|x| EntityId { id: x }).collect(),
             children: Vec::new(),
-            bounds
+            bounds,
         };
 
         let mut tree = Octree {
             entities,
+            boundless_entities,
             octants: vec![root],
         };
-
 
 
         tree.split_octant(OctantId { id: 0 }, depth_limit);
@@ -124,9 +183,9 @@ impl Octree {
 
                     let mut child_entities = Vec::new();
                     for x in &self.octants[current.id].entities {
-                        let entity= &self.entities[x.id];
+                        let entity = &self.entities[x.id];
                         // if entity.model.bounds().transform(&glm::inverse(&entity.inverse_transform)).intersects_bounds(&child_bounds) {
-                        if entity.bounds().intersects_bounds(&child_bounds) {
+                        if entity.bounds().unwrap().intersects_bounds(&child_bounds) {
                             child_entities.push(x.clone());
                         }
                     }
@@ -164,8 +223,6 @@ mod tests {
 
         // TODO: How to avoid this ugly super stuff?
         // let _foo = super::super::super::content::load("/Users/emil/code/rust-rt/assets/models/apricot/Apricot_02_hi_poly.obj").unwrap();
-        b.iter(|| {
-
-        });
+        b.iter(|| {});
     }
 }

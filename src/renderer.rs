@@ -145,7 +145,7 @@ fn shade(scene: &Arc<dyn Scene + Sync + Send>, ray: &Ray, light: &SurfaceDescrip
             }
 
             let mut diffuse = intersection.material().sample_diffuse(&intersection.texture_coordinates());
-            let mut direct_light = glm::vec3(0.0, 0.0, 0.0);
+            let mut direct_light = glm::vec3(1.0, 1.0, 1.0);
 
             let new_origin = coordinate + (norm * 0.1);
             let shadow_ray = Ray {
@@ -209,27 +209,21 @@ fn render_sample_thread(scene: Arc<dyn Scene + Sync + Send>, camera: Camera, ren
                 None => break,
                 Some(scanline_number) => {
                     for x in 0..render_width {
-                        if x == 256 && scanline_number == 256 {
-                            let asd = 321;
-                        }
                         let r = camera.cast_ray(x as usize, scanline_number);
 
-                        let emissive_entities = scene.get_emissive_entities();
-                        let emissive_surface = if emissive_entities.is_empty() {
-                            SurfaceDescription {
-                                coordinate: glm::vec3(0.0, 20.0, 0.0),
-                                world_normal: glm::vec3(0.0, -1.0, 0.0),
-                                emission: glm::vec3(1.0, 1.0, 1.0),
-                                entity_id: 999
-                            }
-                        }
-                        else {
-                            let random_emissive_entity =
-                                emissive_entities[rng.gen_range(0..emissive_entities.len())];
+                        /*let emissive_entities = scene.get_emissive_entities();
 
-                            random_emissive_entity.get_random_emissive_surface(&mut rng)
+                        let random_emissive_entity =
+                            emissive_entities[rng.gen_range(0..emissive_entities.len())];
+
+                        let emissive_surface = random_emissive_entity.get_random_emissive_surface(&mut rng);*/
+
+                        let emissive_surface = SurfaceDescription {
+                            coordinate: glm::vec3(0.0, 5.0, 0.0),
+                            world_normal: glm::vec3(0.0, -1.0, 0.0),
+                            emission: glm::vec3(1.0, 1.0, 1.0),
+                            entity_id: 999
                         };
-
 
 
                         pixels[x] = shade(&scene, &r, &emissive_surface, 3);

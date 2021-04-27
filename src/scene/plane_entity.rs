@@ -13,22 +13,17 @@ use glm::{Vec2, Vec3, Vec4};
 pub struct PlaneEntity {
     entity_id: u32,
     plane: Plane,
-    extent: f32,
-    bounds: AABB,
     material: Material,
     transform: Transform,
 }
 
 impl PlaneEntity {
-    pub fn new(entity_id: u32, plane: Plane, extent: f32, material: Material, transform: Transform) -> Self {
-        let bounds = AABB::from_plane(&plane, extent, 0.1);
+    pub fn new(entity_id: u32, plane: Plane, material: Material, transform: Transform) -> Self {
         PlaneEntity {
             entity_id,
             plane,
-            extent,
             material,
             transform,
-            bounds,
         }
     }
 }
@@ -42,8 +37,8 @@ impl Renderable for PlaneEntity {
 
     fn get_random_emissive_surface(&self, rng: &mut StdRng) -> SurfaceDescription {
         let coordinate = self.plane.origin() +
-            (self.plane.v() * self.extent * ((rng.gen::<f32>() * 2.0) - 1.0)) +
-            (self.plane.u() * self.extent * ((rng.gen::<f32>() * 2.0) - 1.0));
+            (self.plane.v() * 100.0 * ((rng.gen::<f32>() * 2.0) - 1.0)) +
+            (self.plane.u() * 100.0 * ((rng.gen::<f32>() * 2.0) - 1.0));
         SurfaceDescription
         {
             coordinate,
@@ -56,16 +51,17 @@ impl Renderable for PlaneEntity {
 
 impl Intersectable for PlaneEntity {
     fn intersect<'a>(&'a self, world_ray: &Ray) -> Option<Box<dyn Intersection + '_>> {
-        if !ray_aabb_intersect(&world_ray, &self.bounds) {
-            return None; // This is to confine the plane to a finite space.
-        }
         let denominator = glm::dot(world_ray.direction, self.plane.normal());
-            if glm::abs(denominator) < 0.0001 { // TODO: What epsilon value should I use?
+            if glm::abs(denominator) < 0.00000001 { // TODO: What epsilon value should I use?
             return None;
         }
 
         let x = self.plane.origin() - world_ray.origin;
         let t = glm::dot(x, self.plane.normal()) / denominator;
+
+        if t < 0.0 {
+            return None;
+        }
 
         Some(Box::new(PlaneIntersection {
             world_space_normal: self.plane.normal(),
@@ -76,8 +72,8 @@ impl Intersectable for PlaneEntity {
         }))
     }
 
-    fn bounds(&self) -> &AABB {
-        &self.bounds
+    fn bounds(&self) -> Option<&AABB> {
+        None
     }
 
     fn entity_id(&self) -> u32 {
